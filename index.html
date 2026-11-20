@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Luz Seletora de Leitura — WebAR</title>
+  <!-- Tailwind CSS para layout responsivo e utilitários -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tipografia limpa e técnica -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-ink: #0b0e14;
+      --accent-amber: #fbbf24;
+      --accent-gold: #fef08a;
+      --accent-cyan: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-ink);
+      color: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Camada de vídeo em tela cheia com corte proporcional */
+    #cameraFeed {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      background: #0b0e14;
+    }
+
+    /* Canvas principal de Realidade Aumentada */
+    #arCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 2;
+      touch-action: manipulation;
+    }
+
+    /* Painéis translúcidos estilo vidro fosco escuro */
+    .glass-panel {
+      background: rgba(11, 14, 20, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .glass-pill {
+      background: rgba(11, 14, 20, 0.68);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    /* Botão principal âmbar com brilho tátil */
+    .btn-amber {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #0b0e14;
+      box-shadow: 0 0 24px rgba(251, 191, 36, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-amber:active {
+      transform: scale(0.96);
+    }
+
+    .btn-amber:disabled {
+      opacity: 0.45;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* Botão secundário vidro */
+    .btn-glass {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #f1f5f9;
+      transition: transform 0.16s ease, background 0.2s ease;
+    }
+
+    .btn-glass:active {
+      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Estilização customizada do slider de sensibilidade */
+    input[type="range"].ar-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      outline: none;
+    }
+
+    input[type="range"].ar-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #0b0e14;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.65);
+      cursor: pointer;
+    }
+
+    input[type="range"].ar-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #0b0e14;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.65);
+      cursor: pointer;
+    }
+
+    /* Safe areas para dispositivos móveis modernos */
+    .safe-top {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+
+    .safe-bottom {
+      padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.75; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+
+    .animate-pulse-dot {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Elemento de vídeo para captura da câmera traseira -->
+  <video id="cameraFeed" playsinline autoplay muted></video>
+
+  <!-- Canvas de Realidade Aumentada sobreposto -->
+  <canvas id="arCanvas"></canvas>
+
+  <!-- ===================================================================== -->
+  <!-- TELA INICIAL (ONBOARDING / PERMISSÃO DE CÂMERA OU MODO DEMO)          -->
+  <!-- ===================================================================== -->
+  <div id="startOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 sm:p-6 bg-[#0b0e14]/92 backdrop-blur-md transition-opacity duration-300">
+    <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
+      <!-- Halo decorativo superior -->
+      <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-amber-400/15 blur-3xl"></div>
+
+      <!-- Ícone vetorial de estante com feixe de luz -->
+      <div class="mx-auto mb-5 w-16 h-16 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center shadow-lg">
+        <svg class="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H10v20H6.5a2.5 2.5 0 0 1 0-5H10" />
+          <path d="M10 2h4v20h-4z" />
+          <path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v13a2.5 2.5 0 0 1-2.5 2.5H14" />
+          <path d="M12 2v20" class="text-amber-200" />
+        </svg>
+      </div>
+
+      <span class="inline-block px-3 py-1 mb-3 text-[11px] font-mono-tech uppercase tracking-widest text-sky-400 bg-sky-400/10 border border-sky-400/25 rounded-full">
+        WebAR • Visão Computacional
+      </span>
+
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2.5">
+        Luz Seletora de Leitura
+      </h1>
+
+      <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-6">
+        Aponte a câmera para uma estante de livros. O sistema rastreia as lombadas em tempo real e projeta um feixe de luz seletor para escolher sua próxima leitura.
+      </p>
+
+      <!-- Mensagem de erro/aviso amigável caso a câmera falhe -->
+      <div id="cameraErrorBox" class="hidden mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-left text-xs sm:text-sm text-amber-200 leading-snug">
+        <div class="flex items-start gap-2.5">
+          <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="cameraErrorText">Não foi possível acessar a câmera. Você pode testar imediatamente com a estante virtual.</span>
+        </div>
+      </div>
+
+      <!-- Botões de ação iniciais -->
+      <div class="space-y-3">
+        <button id="btnStartCamera" type="button" class="btn-amber w-full py-3.5 px-5 rounded-2xl font-semibold text-base flex items-center justify-center gap-2.5 cursor-pointer">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+          <span>Ativar Câmera</span>
+        </button>
+
+        <button id="btnStartDemo" type="button" class="btn-glass w-full py-3.5 px-5 rounded-2xl font-medium text-sm sm:text-base flex items-center justify-center gap-2.5 cursor-pointer">
+          <svg class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <span>Testar com Estante Virtual (Demo)</span>
+        </button>
+      </div>
+
+      <p class="mt-5 text-[11px] text-slate-400">
+        Processamento 100% local no navegador • Nenhuma imagem é enviada à nuvem
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- HUD SUPERIOR (STATUS DE RASTREAMENTO, MODO E CONTROLES RÁPIDOS)       -->
+  <!-- ===================================================================== -->
+  <header id="hudTop" class="hidden fixed top-0 inset-x-0 z-20 safe-top px-3 sm:px-5 pointer-events-none">
+    <div class="max-w-3xl mx-auto flex flex-col gap-2.5">
+      <div class="flex items-center justify-between gap-2">
+        <!-- Pílula de status e contagem de lombadas -->
+        <div class="glass-pill pointer-events-auto rounded-full py-2 px-3.5 flex items-center gap-2.5 shadow-lg">
+          <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse-dot shrink-0"></span>
+          <span id="spineCounterText" class="text-xs sm:text-sm font-medium text-slate-100 truncate">
+            Buscando lombadas...
+          </span>
+        </div>
+
+        <!-- Botões utilitários à direita -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+          <!-- Alternar Câmera / Demo -->
+          <button id="btnToggleSource" type="button" title="Alternar entre Câmera e Estante Virtual" class="glass-pill rounded-full py-2 px-3 text-xs font-mono-tech text-slate-200 hover:text-white flex items-center gap-1.5 cursor-pointer active:scale-95 transition">
+            <span id="sourceBadgeText">CÂMERA</span>
+          </button>
+
+          <!-- Botão de Sensibilidade -->
+          <button id="btnToggleSensitivity" type="button" title="Ajustar sensibilidade de detecção" aria-label="Sensibilidade" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-slate-200 hover:text-sky-400 cursor-pointer active:scale-95 transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+          </button>
+
+          <!-- Botão de Áudio (Mudo / Ativo) -->
+          <button id="btnToggleAudio" type="button" title="Alternar efeitos sonoros" aria-label="Som" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-slate-200 hover:text-amber-400 cursor-pointer active:scale-95 transition">
+            <svg id="iconAudioOn" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+            <svg id="iconAudioOff" class="w-4 h-4 hidden text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <line x1="23" y1="9" x2="17" y2="15"/>
+              <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Painel colapsável de Sensibilidade de Detecção -->
+      <div id="sensitivityDrawer" class="hidden glass-panel pointer-events-auto rounded-2xl p-3.5 max-w-xs ml-auto w-full">
+        <div class="flex items-center justify-between text-xs mb-2">
+          <span class="font-medium text-slate-200">Sensibilidade de Bordas</span>
+          <span id="sensitivityValueLabel" class="font-mono-tech text-sky-400">62%</span>
+        </div>
+        <input id="sensitivitySlider" type="range" min="15" max="95" value="62" class="ar-slider" />
+        <div class="flex justify-between text-[10px] text-slate-400 mt-1.5">
+          <span>Menos ruído</span>
+          <span>Mais lombadas</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- TOAST DE FEEDBACK NÃO-INTRUSIVO                                       -->
+  <!-- ===================================================================== -->
+  <div id="toastBanner" class="pointer-events-none fixed top-20 left-1/2 -translate-x-1/2 z-30 opacity-0 transition-opacity duration-250 px-4 w-full max-w-sm">
+    <div class="glass-panel rounded-2xl py-2.5 px-4 text-center text-xs sm:text-sm text-amber-200 border border-amber-400/30 shadow-xl">
+      <span id="toastText">Aponte para uma estante com livros lado a lado.</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CONTROLES INFERIORES DE AÇÃO (SORTEAR / VOLTAR AO SCANNER)            -->
+  <!-- ===================================================================== -->
+  <footer id="hudBottom" class="hidden fixed bottom-0 inset-x-0 z-20 safe-bottom px-4 pointer-events-none">
+    <div class="max-w-md mx-auto flex flex-col items-center gap-3">
+      <!-- Dica contextual acima do botão -->
+      <p id="bottomHintText" class="text-xs text-slate-300/90 bg-[#0b0e14]/65 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-center">
+        Enquadre as lombadas na área central e toque para sortear
+      </p>
+
+      <!-- Grupo 1: Modo SCANNING / SPINNING -->
+      <div id="controlsScanning" class="w-full pointer-events-auto">
+        <button id="btnSpin" type="button" class="btn-amber w-full py-4 px-6 rounded-2xl font-bold text-base sm:text-lg tracking-wide flex items-center justify-center gap-2.5 cursor-pointer">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span id="btnSpinLabel">Sortear Leitura</span>
+        </button>
+      </div>
+
+      <!-- Grupo 2: Modo LOCKED (Lombada Escolhida) -->
+      <div id="controlsLocked" class="hidden w-full grid grid-cols-2 gap-3 pointer-events-auto">
+        <button id="btnBackScan" type="button" class="btn-glass py-3.5 px-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          <span>Scanner</span>
+        </button>
+
+        <button id="btnRespin" type="button" class="btn-amber py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span>Sortear Outro</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /**
+     * ============================================================================
+     * LUZ SELETORA DE LEITURA — PROTÓTIPO WEBAR
+     * ============================================================================
+     * Arquitetura:
+     * 1. Fonte de Vídeo: Câmera traseira real (getUserMedia) OU Estante Virtual
+     *    procedural animada (para testes em desktop ou ambientes sem livros).
+     * 2. Visão Computacional (JavaScript Puro):
+     *    - Subamostragem de cada quadro para um buffer offscreen de 160x120 px
+     *      preservando o recorte exato "object-fit: cover" da tela.
+     *    - Cálculo de gradientes horizontais de luminância (estilo Sobel) para
+     *      detectar divisórias verticais entre lombadas na Região de Interesse (ROI).
+     *    - Estimativa de topo e base de cada livro via energia de borda horizontal.
+     *    - Estabilização temporal (rastreamento por proximidade + interpolação Lerp)
+     *      para manter as caixas firmes e sem trepidação.
+     * 3. Renderização AR & Roleta Seletora:
+     *    - Canvas 2D em tela cheia com guias ciano em modo SCANNING.
+     *    - Feixe de luz volumétrico dourado saltando com desaceleração exponencial
+     *      em modo SPINNING.
+     *    - Recorte dramático estilo holofote de teatro em modo LOCKED com cartão
+     *      flutuante ancorado ao livro sorteado e partículas de poeira iluminada.
+     * 4. Áudio Procedural: Web Audio API sem arquivos externos.
+     */
+
+    (function () {
+      'use strict';
+
+      // ------------------------------------------------------------------------
+      // REFERÊNCIAS DE DOM
+      // ------------------------------------------------------------------------
+      const videoEl = document.getElementById('cameraFeed');
+      const arCanvas = document.getElementById('arCanvas');
+      const ctx = arCanvas.getContext('2d', { alpha: true });
+
+      const startOverlay = document.getElementById('startOverlay');
+      const cameraErrorBox = document.getElementById('cameraErrorBox');
+      const cameraErrorText = document.getElementById('cameraErrorText');
+      const btnStartCamera = document.getElementById('btnStartCamera');
+      const btnStartDemo = document.getElementById('btnStartDemo');
+
+      const hudTop = document.getElementById('hudTop');
+      const hudBottom = document.getElementById('hudBottom');
+      const statusDot = document.getElementById('statusDot');
+      const spineCounterText = document.getElementById('spineCounterText');
+      const btnToggleSource = document.getElementById('btnToggleSource');
+      const sourceBadgeText = document.getElementById('sourceBadgeText');
+      const btnToggleSensitivity = document.getElementById('btnToggleSensitivity');
+      const sensitivityDrawer = document.getElementById('sensitivityDrawer');
+      const sensitivitySlider = document.getElementById('sensitivitySlider');
+      const sensitivityValueLabel = document.getElementById('sensitivityValueLabel');
+      const btnToggleAudio = document.getElementById('btnToggleAudio');
+      const iconAudioOn = document.getElementById('iconAudioOn');
+      const iconAudioOff = document.getElementById('iconAudioOff');
+
+      const bottomHintText = document.getElementById('bottomHintText');
+      const controlsScanning = document.getElementById('controlsScanning');
+      const controlsLocked = document.getElementById('controlsLocked');
+      const btnSpin = document.getElementById('btnSpin');
+      const btnSpinLabel = document.getElementById('btnSpinLabel');
+      const btnBackScan = document.getElementById('btnBackScan');
+      const btnRespin = document.getElementById('btnRespin');
+
+      const toastBanner = document.getElementById('toastBanner');
+      const toastText = document.getElementById('toastText');
+
+      // ------------------------------------------------------------------------
+      // CANVAS OFFSCREEN PARA ANÁLISE DE VISÃO COMPUTACIONAL (160 x 120)
+      // ------------------------------------------------------------------------
+      const PROC_W = 160;
+      const PROC_H = 120;
+      const procCanvas = document.createElement('canvas');
+      procCanvas.width = PROC_W;
+      procCanvas.height = PROC_H;
+      const procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
+
+      // ------------------------------------------------------------------------
+      // CANVAS OFFSCREEN PARA A ESTANTE VIRTUAL PROCEDURAL (MODO DEMO)
+      // ------------------------------------------------------------------------
+      const DEMO_W = 1280;
+      const DEMO_H = 720;
+      const demoCanvas = document.createElement('canvas');
+      demoCanvas.width = DEMO_W;
+      demoCanvas.height = DEMO_H;
+      const demoCtx = demoCanvas.getContext('2d');
+
+      // ------------------------------------------------------------------------
+      // ESTADO GLOBAL DA APLICAÇÃO
+      // ------------------------------------------------------------------------
+      const AppState = {
+        mode: 'INIT',          // 'INIT' | 'SCANNING' | 'SPINNING' | 'LOCKED'
+        sourceType: 'NONE',    // 'NONE' | 'CAMERA' | 'DEMO'
+        mediaStream: null,
+        sensitivity: 62,       // 15 a 95
+        audioMuted: false,
+        viewportW: window.innerWidth,
+        viewportH: window.innerHeight,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+
+        // Lombadas rastreadas com suavização temporal
+        // Cada item: { id, x, y, w, h, targetX, targetY, targetW, targetH, confidence, ttl }
+        trackedSpines: [],
+        nextSpineId: 1,
+
+        // Estado da roleta seletora
+        highlightedIndex: -1,
+        lockedSpineId: null,
+        spinStep: 0,
+        spinTotalSteps: 26,
+        spinTimerId: null,
+
+        // Animação visual
+        dimAlpha: 0,
+        targetDimAlpha: 0,
+        scanLinePhase: 0,
+        dustParticles: [],
+        lastFrameTime: performance.now(),
+        toastTimeout: null
+      };
+
+      // ------------------------------------------------------------------------
+      // SINTETIZADOR DE ÁUDIO PROCEDURAL (WEB AUDIO API)
+      // ------------------------------------------------------------------------
+      const SoundEngine = {
+        ctx: null,
+
+        unlock() {
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                this.ctx = new AudioCtx();
+              }
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume();
+            }
+          } catch (e) {
+            // Ignora silenciosamente se bloqueado pelo navegador
+          }
+        },
+
+        // Estalo tátil suave quando a luz pula de um livro para outro
+        playHop(progress = 0) {
+          if (AppState.audioMuted || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            // Frequência sobe levemente conforme a roleta desacelera
+            const freq = 360 + progress * 320;
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
+
+            gain.gain.setValueAtTime(0.11, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.05);
+          } catch (e) {}
+        },
+
+        // Acorde harmônico quente quando a luz trava no livro escolhido
+        playLock() {
+          if (AppState.audioMuted || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // Dó maior brilhante (C5, E5, G5, C6)
+
+            notes.forEach((freq, idx) => {
+              const osc = this.ctx.createOscillator();
+              const gain = this.ctx.createGain();
+
+              osc.type = idx === 0 ? 'sine' : 'triangle';
+              const startTime = now + idx * 0.045;
+              osc.frequency.setValueAtTime(freq, startTime);
+
+              gain.gain.setValueAtTime(0.001, startTime);
+              gain.gain.linearRampToValueAtTime(0.09 / (idx * 0.4 + 1), startTime + 0.03);
+              gain.gain.exponentialRampToValueAtTime(0.0008, startTime + 0.85);
+
+              osc.connect(gain);
+              gain.connect(this.ctx.destination);
+
+              osc.start(startTime);
+              osc.stop(startTime + 0.9);
+            });
+          } catch (e) {}
+        }
+      };
+
+      // ------------------------------------------------------------------------
+      // GERADOR DA ESTANTE VIRTUAL PROCEDURAL (MODO DEMO)
+      // ------------------------------------------------------------------------
+      const DemoShelf = {
+        books: [],
+
+        init() {
+          const palette = [
+            { bg: '#7f1d1d', band: '#fbbf24', text: '#fef3c7' }, // Vinho clássico
+            { bg: '#1e3a5f', band: '#e2e8f0', text: '#f8fafc' }, // Azul marinho
+            { bg: '#14532d', band: '#fcd34d', text: '#ecfdf5' }, // Verde biblioteca
+            { bg: '#d97706', band: '#1e293b', text: '#fffbeb' }, // Mostarda editorial
+            { bg: '#e7e5e4', band: '#dc2626', text: '#1c1917' }, // Creme literário
+            { bg: '#312e81', band: '#38bdf8', text: '#eef2ff' }, // Índigo
+            { bg: '#881337', band: '#fda4af', text: '#fff1f2' }, // Bordô
+            { bg: '#27272a', band: '#fbbf24', text: '#f4f4f5' }, // Grafite
+            { bg: '#9a3412', band: '#fed7aa', text: '#fff7ed' }, // Terracota
+            { bg: '#0f766e', band: '#ccfbf1', text: '#f0fdfa' }  // Verde petróleo
+          ];
+
+          this.books = [];
+          let cursorX = -60;
+          let idx = 0;
+
+          // Gera uma fileira contínua de livros com larguras e alturas variadas
+          while (cursorX < DEMO_W + 240) {
+            const width = 46 + ((idx * 19 + 11) % 44);      // 46px a 90px
+            const height = 340 + ((idx * 37 + 17) % 105);   // 340px a 445px
+            const style = palette[idx % palette.length];
+            const hasTopBand = idx % 2 === 0;
+            const hasBottomBadge = idx % 3 !== 0;
+            const spineLines = 1 + (idx % 2);
+
+            this.books.push({
+              x: cursorX,
+              w: width,
+              h: height,
+              style,
+              hasTopBand,
+              hasBottomBadge,
+              spineLines,
+              seed: idx
+            });
+
+            cursorX += width + 2; // Pequena fresta de sombra entre livros
+            idx++;
+          }
+        },
+
+        render(timeMs) {
+          const t = timeMs * 0.001;
+          // Suave movimento lateral simulando a mão segurando o celular diante da estante
+          const swayX = Math.sin(t * 0.55) * 38;
+          const swayY = Math.cos(t * 0.8) * 5;
+
+          // Fundo escuro da estante de madeira
+          const bgGrad = demoCtx.createLinearGradient(0, 0, 0, DEMO_H);
+          bgGrad.addColorStop(0, '#16110e');
+          bgGrad.addColorStop(0.75, '#231914');
+          bgGrad.addColorStop(1, '#120d0a');
+          demoCtx.fillStyle = bgGrad;
+          demoCtx.fillRect(0, 0, DEMO_W, DEMO_H);
+
+          const shelfBaseY = 585 + swayY;
+
+          // Desenha cada livro
+          for (let i = 0; i < this.books.length; i++) {
+            const b = this.books[i];
+            const bx = b.x + swayX;
+            const by = shelfBaseY - b.h;
+
+            if (bx + b.w < -20 || bx > DEMO_W + 20) continue;
+
+            // Sombra lateral profunda para criar borda vertical nítida entre lombadas
+            demoCtx.fillStyle = '#070504';
+            demoCtx.fillRect(bx - 2, by + 2, b.w + 4, b.h);
+
+            // Corpo cilíndrico da lombada com iluminação 3D realista
+            const spineGrad = demoCtx.createLinearGradient(bx, by, bx + b.w, by);
+            spineGrad.addColorStop(0, 'rgba(0,0,0,0.42)');
+            spineGrad.addColorStop(0.18, b.style.bg);
+            spineGrad.addColorStop(0.5, b.style.bg);
+            spineGrad.addColorStop(0.85, b.style.bg);
+            spineGrad.addColorStop(1, 'rgba(0,0,0,0.48)');
+
+            demoCtx.fillStyle = b.style.bg;
+            demoCtx.fillRect(bx, by, b.w, b.h);
+
+            demoCtx.fillStyle = spineGrad;
+            demoCtx.fillRect(bx, by, b.w, b.h);
+
+            // Reflexo especular vertical sutil no centro da lombada
+            demoCtx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            demoCtx.fillRect(bx + b.w * 0.28, by, b.w * 0.16, b.h);
+
+            // Faixas decorativas superiores e inferiores
+            if (b.hasTopBand) {
+              demoCtx.fillStyle = b.style.band;
+              demoCtx.fillRect(bx + 3, by + 24, b.w - 6, 8);
+              demoCtx.fillRect(bx + 3, by + 37, b.w - 6, 3);
+            }
+
+            if (b.hasBottomBadge) {
+              demoCtx.fillStyle = b.style.band;
+              demoCtx.fillRect(bx + 6, shelfBaseY - 46, b.w - 12, 22);
+              demoCtx.fillStyle = b.style.bg;
+              demoCtx.fillRect(bx + 10, shelfBaseY - 38, b.w - 20, 6);
+            }
+
+            // Simulação de tipografia vertical na lombada
+            demoCtx.fillStyle = b.style.text;
+            demoCtx.globalAlpha = 0.78;
+            const titleTop = by + 68;
+            const titleHeight = b.h - 140;
+            if (b.spineLines === 1) {
+              demoCtx.fillRect(bx + b.w * 0.44, titleTop, Math.max(4, b.w * 0.12), titleHeight * 0.75);
+            } else {
+              demoCtx.fillRect(bx + b.w * 0.34, titleTop, 4, titleHeight * 0.8);
+              demoCtx.fillRect(bx + b.w * 0.56, titleTop + 14, 4, titleHeight * 0.65);
+            }
+            demoCtx.globalAlpha = 1;
+
+            // Borda superior clara do corte das páginas/capa
+            demoCtx.fillStyle = 'rgba(255,255,255,0.22)';
+            demoCtx.fillRect(bx + 1, by, b.w - 2, 3);
+          }
+
+          // Prateleira de madeira maciça abaixo dos livros
+          const woodGrad = demoCtx.createLinearGradient(0, shelfBaseY, 0, shelfBaseY + 46);
+          woodGrad.addColorStop(0, '#5c3a21');
+          woodGrad.addColorStop(0.25, '#452a17');
+          woodGrad.addColorStop(1, '#26160b');
+          demoCtx.fillStyle = woodGrad;
+          demoCtx.fillRect(0, shelfBaseY, DEMO_W, 46);
+
+          // Filete de luz na quina da prateleira
+          demoCtx.fillStyle = 'rgba(255, 220, 180, 0.22)';
+          demoCtx.fillRect(0, shelfBaseY, DEMO_W, 2);
+        }
+      };
+
+      // ------------------------------------------------------------------------
+      // UTILITÁRIOS DE INTERFACE E DIMENSIONAMENTO
+      // ------------------------------------------------------------------------
+      function showToast(message, durationMs = 2800) {
+        toastText.textContent = message;
+        toastBanner.style.opacity = '1';
+        clearTimeout(AppState.toastTimeout);
+        AppState.toastTimeout = setTimeout(() => {
+          toastBanner.style.opacity = '0';
+        }, durationMs);
+      }
+
+      function resizeCanvas() {
+        AppState.viewportW = window.innerWidth;
+        AppState.viewportH = window.innerHeight;
+        AppState.dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        arCanvas.width = Math.floor(AppState.viewportW * AppState.dpr);
+        arCanvas.height = Math.floor(AppState.viewportH * AppState.dpr);
+        ctx.setTransform(AppState.dpr, 0, 0, AppState.dpr, 0, 0);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 120));
+      resizeCanvas();
+
+      // ------------------------------------------------------------------------
+      // GERENCIAMENTO DE CÂMERA E MODO DEMO
+      // ------------------------------------------------------------------------
+      function stopMediaStream() {
+        if (AppState.mediaStream) {
+          AppState.mediaStream.getTracks().forEach((track) => track.stop());
+          AppState.mediaStream = null;
+        }
+        videoEl.srcObject = null;
+      }
+
+      async function activateCameraMode() {
+        SoundEngine.unlock();
+        cameraErrorBox.classList.add('hidden');
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          handleCameraFailure('Seu navegador não suporta acesso direto à câmera. Iniciando Estante Virtual...');
+          return;
+        }
+
+        try {
+          stopMediaStream();
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          });
+
+          AppState.mediaStream = stream;
+          videoEl.srcObject = stream;
+          await videoEl.play();
+
+          AppState.sourceType = 'CAMERA';
+          videoEl.classList.remove('hidden');
+          sourceBadgeText.textContent = 'CÂMERA';
+
+          enterScannerUI();
+          showToast('Câmera ativada! Aponte para uma estante de livros.');
+        } catch (err) {
+          let reason = 'Permissão de câmera negada ou indisponível.';
+          if (err && err.name === 'NotFoundError') {
+            reason = 'Nenhuma câmera encontrada neste dispositivo.';
+          }
+          handleCameraFailure(`${reason} Ativando Estante Virtual para demonstração.`);
+        }
+      }
+
+      function handleCameraFailure(msg) {
+        cameraErrorText.textContent = msg;
+        cameraErrorBox.classList.remove('hidden');
+        setTimeout(() => {
+          activateDemoMode();
+        }, 1100);
+      }
+
+      function activateDemoMode() {
+        SoundEngine.unlock();
+        stopMediaStream();
+        DemoShelf.init();
+
+        AppState.sourceType = 'DEMO';
+        videoEl.classList.add('hidden');
+        sourceBadgeText.textContent = 'DEMO 3D';
+
+        enterScannerUI();
+        showToast('Modo Estante Virtual ativo — rastreando lombadas!');
+      }
+
+      function enterScannerUI() {
+        startOverlay.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => startOverlay.classList.add('hidden'), 300);
+
+        hudTop.classList.remove('hidden');
+        hudBottom.classList.remove('hidden');
+        setAppMode('SCANNING');
+      }
+
+      // ------------------------------------------------------------------------
+      // PROJEÇÃO EXATA "OBJECT-FIT: COVER" PARA ALINHAMENTO AR PERFEITO
+      // ------------------------------------------------------------------------
+      function drawSourceCoverToTarget(targetCtx, targetW, targetH) {
+        let srcEl = null;
+        let srcW = 0;
+        let srcH = 0;
+
+        if (AppState.sourceType === 'CAMERA' && videoEl.readyState >= 2) {
+          srcEl = videoEl;
+          srcW = videoEl.videoWidth || 1280;
+          srcH = videoEl.videoHeight || 720;
+        } else if (AppState.sourceType === 'DEMO') {
+          srcEl = demoCanvas;
+          srcW = DEMO_W;
+          srcH = DEMO_H;
+        }
+
+        if (!srcEl || srcW === 0 || srcH === 0) return false;
+
+        // Calcula o mesmo recorte "cover" usado pela viewport
+        const viewAspect = AppState.viewportW / AppState.viewportH;
+        const srcAspect = srcW / srcH;
+
+        let cropX = 0;
+        let cropY = 0;
+        let cropW = srcW;
+        let cropH = srcH;
+
+        if (srcAspect > viewAspect) {
+          // Fonte mais larga que a tela -> corta laterais
+          cropW = srcH * viewAspect;
+          cropX = (srcW - cropW) * 0.5;
+        } else {
+          // Fonte mais alta que a tela -> corta topo/base
+          cropH = srcW / viewAspect;
+          cropY = (srcH - cropH) * 0.5;
+        }
+
+        targetCtx.drawImage(srcEl, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+        return true;
+      }
+
+      // ------------------------------------------------------------------------
+      // MOTOR DE VISÃO COMPUTACIONAL: DETECÇÃO DE LOMBADAS VERTICAIS
+      // ------------------------------------------------------------------------
+      const lumaBuffer = new Float32Array(PROC_W * PROC_H);
+      const rawVertProfile = new Float32Array(PROC_W);
+      const smoothVertProfile = new Float32Array(PROC_W);
+
+      function detectVerticalSpines() {
+        const hasFrame = drawSourceCoverToTarget(procCtx, PROC_W, PROC_H);
+        if (!hasFrame) return;
+
+        const imgData = procCtx.getImageData(0, 0, PROC_W, PROC_H).data;
+
+        // 1. Converte frame reduzido para luminância perceptual
+        for (let i = 0, p = 0; i < imgData.length; i += 4, p++) {
+          lumaBuffer[p] = 0.299 * imgData[i] + 0.587 * imgData[i + 1] + 0.114 * imgData[i + 2];
+        }
+
+        // Região de interesse central (66% centrais da altura)
+        const roiTop = Math.floor(PROC_H * 0.17);
+        const roiBottom = Math.floor(PROC_H * 0.83);
+        const roiHeight = roiBottom - roiTop;
+
+        // 2. Soma vertical dos gradientes horizontais de luminância |L(x+1,y) - L(x-1,y)|
+        rawVertProfile.fill(0);
+        for (let x = 2; x < PROC_W - 2; x++) {
+          let edgeSum = 0;
+          let consistentSignCount = 0;
+
+          for (let y = roiTop; y < roiBottom; y++) {
+            const idx = y * PROC_W + x;
+            const dx = lumaBuffer[idx + 1] - lumaBuffer[idx - 1];
+            const absDx = Math.abs(dx);
+            edgeSum += absDx;
+            if (absDx > 8) {
+              consistentSignCount += dx > 0 ? 1 : -1;
+            }
+          }
+
+          // Bônus de coerência vertical: bordas reais de livros mantêm direção consistente
+          const coherence = Math.abs(consistentSignCount) / roiHeight;
+          rawVertProfile[x] = (edgeSum / roiHeight) * (0.65 + 0.75 * coherence);
+        }
+
+        // 3. Suavização Gaussiana 1D [1, 2, 3, 2, 1] / 9
+        smoothVertProfile.fill(0);
+        for (let x = 2; x < PROC_W - 2; x++) {
+          smoothVertProfile[x] =
+            (rawVertProfile[x - 2] +
+              2 * rawVertProfile[x - 1] +
+              3 * rawVertProfile[x] +
+              2 * rawVertProfile[x + 1] +
+              rawVertProfile[x + 2]) / 9;
+        }
+
+        // 4. Limiar adaptativo baseado na média + desvio padrão e slider de sensibilidade
+        let sum = 0;
+        let count = 0;
+        for (let x = 4; x < PROC_W - 4; x++) {
+          sum += smoothVertProfile[x];
+          count++;
+        }
+        const mean = sum / Math.max(1, count);
+
+        let sqDiffSum = 0;
+        for (let x = 4; x < PROC_W - 4; x++) {
+          const d = smoothVertProfile[x] - mean;
+          sqDiffSum += d * d;
+        }
+        const stdDev = Math.sqrt(sqDiffSum / Math.max(1, count));
+
+        // Sensibilidade (15..95) mapeada para multiplicador do desvio padrão
+        const sensNorm = (AppState.sensitivity - 15) / 80; // 0 (baixa) -> 1 (alta)
+        const threshold = Math.max(3.2, mean + (1.15 - sensNorm * 0.95) * stdDev);
+
+        // 5. Detecção de picos locais (bordas verticais entre lombadas)
+        const edges = [];
+        const minEdgeGap = 4; // Mínimo 4px no grid de 160px (~2.5% da largura da tela)
+
+        for (let x = 4; x < PROC_W - 4; x++) {
+          const v = smoothVertProfile[x];
+          if (
+            v >= threshold &&
+            v >= smoothVertProfile[x - 1] &&
+            v >= smoothVertProfile[x + 1] &&
+            v >= smoothVertProfile[x - 2] &&
+            v >= smoothVertProfile[x + 2]
+          ) {
+            if (edges.length === 0 || x - edges[edges.length - 1] >= minEdgeGap) {
+              edges.push(x);
+            } else if (v > smoothVertProfile[edges[edges.length - 1]]) {
+              edges[edges.length - 1] = x;
+            }
+          }
+        }
+
+        // 6. Construção dos intervalos candidatos [x1, x2] e estimativa de altura [y1, y2]
+        const rawCandidates = [];
+        const minSpineW = 4;
+        const maxSpineW = 28;
+
+        for (let i = 0; i < edges.length - 1; i++) {
+          const x1 = edges[i];
+          const x2 = edges[i + 1];
+          const w = x2 - x1;
+
+          if (w < minSpineW || w > maxSpineW) continue;
+
+          // Verifica se o interior da lombada é relativamente homogêneo (não é ruído caótico)
+          let innerEdgeEnergy = 0;
+          if (w >= 6) {
+            for (let ix = x1 + 2; ix <= x2 - 2; ix++) {
+              innerEdgeEnergy += smoothVertProfile[ix];
+            }
+            innerEdgeEnergy /= Math.max(1, w - 3);
+          }
+
+          const boundaryStrength = (smoothVertProfile[x1] + smoothVertProfile[x2]) * 0.5;
+          if (boundaryStrength < innerEdgeEnergy * 1.12) continue;
+
+          // Estima topo (y1) e base (y2) do livro procurando bordas horizontais
+          const { y1, y2 } = estimateBookVerticalBounds(x1, x2);
+          const h = y2 - y1;
+
+          // Proporção realista de lombada: altura pelo menos 2.1x maior que a largura
+          if (h < w * 2.1 || h < PROC_H * 0.28) continue;
+
+          rawCandidates.push({
+            nx: (x1 + 0.5) / PROC_W,
+            ny: y1 / PROC_H,
+            nw: Math.max(2, w - 1) / PROC_W,
+            nh: h / PROC_H,
+            confidence: boundaryStrength
+          });
+        }
+
+        // 7. Estabilização temporal (Tracking + Lerp)
+        updateTrackedSpines(rawCandidates);
+      }
+
+      // Estima topo e base individuais de cada livro usando gradientes verticais |L(x,y+1) - L(x,y-1)|
+      function estimateBookVerticalBounds(x1, x2) {
+        const sampleLeft = Math.min(PROC_W - 2, x1 + 1);
+        const sampleRight = Math.max(sampleLeft, x2 - 1);
+        const span = Math.max(1, sampleRight - sampleLeft + 1);
+
+        let bestTop = Math.floor(PROC_H * 0.14);
+        let maxTopScore = 0;
+
+        // Procura borda superior na metade superior da imagem
+        for (let y = 6; y < Math.floor(PROC_H * 0.45); y++) {
+          let hEdge = 0;
+          for (let x = sampleLeft; x <= sampleRight; x++) {
+            const idx = y * PROC_W + x;
+            hEdge += Math.abs(lumaBuffer[idx + PROC_W] - lumaBuffer[idx - PROC_W]);
+          }
+          hEdge /= span;
+          if (hEdge > maxTopScore && hEdge > 7) {
+            maxTopScore = hEdge;
+            bestTop = y;
+          }
+        }
+
+        let bestBottom = Math.floor(PROC_H * 0.86);
+        let maxBottomScore = 0;
+
+        // Procura borda inferior (prateleira) na metade inferior da imagem
+        for (let y = Math.floor(PROC_H * 0.58); y < PROC_H - 6; y++) {
+          let hEdge = 0;
+          for (let x = sampleLeft; x <= sampleRight; x++) {
+            const idx = y * PROC_W + x;
+            hEdge += Math.abs(lumaBuffer[idx + PROC_W] - lumaBuffer[idx - PROC_W]);
+          }
+          hEdge /= span;
+          if (hEdge > maxBottomScore && hEdge > 7) {
+            maxBottomScore = hEdge;
+            bestBottom = y;
+          }
+        }
+
+        return { y1: bestTop, y2: bestBottom };
+      }
+
+      // Associa detecções quadro-a-quadro e aplica suavização exponencial (Lerp)
+      function updateTrackedSpines(candidates) {
+        const matchedCandidateIndices = new Set();
+        const lerpRate = AppState.mode === 'LOCKED' ? 0.18 : 0.32;
+
+        // Atualiza lombadas já existentes por proximidade horizontal
+        for (let i = 0; i < AppState.trackedSpines.length; i++) {
+          const track = AppState.trackedSpines[i];
+          const trackCenterX = track.targetX + track.targetW * 0.5;
+
+          let bestIdx = -1;
+          let bestDist = 0.038; // Tolerância de deslocamento entre frames
+
+          for (let c = 0; c < candidates.length; c++) {
+            if (matchedCandidateIndices.has(c)) continue;
+            const cand = candidates[c];
+            const candCenterX = cand.nx + cand.nw * 0.5;
+            const dist = Math.abs(trackCenterX - candCenterX);
+
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestIdx = c;
+            }
+          }
+
+          if (bestIdx !== -1) {
+            const cand = candidates[bestIdx];
+            matchedCandidateIndices.add(bestIdx);
+
+            track.targetX = cand.nx;
+            track.targetY = cand.ny;
+            track.targetW = cand.nw;
+            track.targetH = cand.nh;
+            track.confidence = cand.confidence;
+            track.ttl = AppState.mode === 'LOCKED' && track.id === AppState.lockedSpineId ? 18 : 6;
+          } else {
+            track.ttl -= 1;
+          }
+
+          // Interpolação suave para eliminar trepidação visual
+          track.x += (track.targetX - track.x) * lerpRate;
+          track.y += (track.targetY - track.y) * lerpRate;
+          track.w += (track.targetW - track.w) * lerpRate;
+          track.h += (track.targetH - track.h) * lerpRate;
+        }
+
+        // Remove trilhas expiradas (mantém a lombada travada viva enquanto estiver no modo LOCKED)
+        AppState.trackedSpines = AppState.trackedSpines.filter(
+          (t) => t.ttl > 0 || (AppState.mode === 'LOCKED' && t.id === AppState.lockedSpineId)
+        );
+
+        // Cria novas trilhas para candidatos recém-descobertos (apenas fora do modo LOCKED)
+        if (AppState.mode !== 'LOCKED') {
+          for (let c = 0; c < candidates.length; c++) {
+            if (matchedCandidateIndices.has(c)) continue;
+            const cand = candidates[c];
+            AppState.trackedSpines.push({
+              id: AppState.nextSpineId++,
+              x: cand.nx,
+              y: cand.ny,
+              w: cand.nw,
+              h: cand.nh,
+              targetX: cand.nx,
+              targetY: cand.ny,
+              targetW: cand.nw,
+              targetH: cand.nh,
+              confidence: cand.confidence,
+              ttl: 5
+            });
+          }
+        }
+
+        // Ordena da esquerda para a direita na estante
+        AppState.trackedSpines.sort((a, b) => a.x - b.x);
+        updateHudStatus();
+      }
+
+      function updateHudStatus() {
+        const count = AppState.trackedSpines.length;
+
+        if (AppState.mode === 'LOCKED') {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
+          spineCounterText.textContent = 'Lombada escolhida!';
+          return;
+        }
+
+        if (AppState.mode === 'SPINNING') {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0';
+          spineCounterText.textContent = 'Luz seletora em movimento...';
+          return;
+        }
+
+        if (count === 0) {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
+          spineCounterText.textContent = 'Aponte para uma estante...';
+        } else if (count === 1) {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse-dot shrink-0';
+          spineCounterText.textContent = '1 lombada identificada';
+        } else {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse-dot shrink-0';
+          spineCounterText.textContent = `${count} lombadas identificadas`;
+        }
+      }
+
+      // ------------------------------------------------------------------------
+      // LÓGICA DA ROLETA SELETORA ("LUZ SELETORA")
+      // ------------------------------------------------------------------------
+      function setAppMode(newMode) {
+        AppState.mode = newMode;
+
+        if (newMode === 'SCANNING') {
+          AppState.highlightedIndex = -1;
+          AppState.lockedSpineId = null;
+          AppState.targetDimAlpha = 0;
+          controlsScanning.classList.remove('hidden');
+          controlsLocked.classList.add('hidden');
+          btnSpin.disabled = false;
+          btnSpinLabel.textContent = 'Sortear Leitura';
+          bottomHintText.textContent = 'Enquadre as lombadas na área central e toque para sortear';
+        } else if (newMode === 'SPINNING') {
+          AppState.lockedSpineId = null;
+          AppState.targetDimAlpha = 0.42;
+          controlsScanning.classList.remove('hidden');
+          controlsLocked.classList.add('hidden');
+          btnSpin.disabled = true;
+          btnSpinLabel.textContent = 'Sorteando...';
+          bottomHintText.textContent = 'A luz está percorrendo a estante...';
+        } else if (newMode === 'LOCKED') {
+          AppState.targetDimAlpha = 0.68;
+          controlsScanning.classList.add('hidden');
+          controlsLocked.classList.remove('hidden');
+          bottomHintText.textContent = 'Sua próxima leitura está iluminada na estante';
+          spawnDustParticles();
+        }
+
+        updateHudStatus();
+      }
+
+      function startSelectorRoulette() {
+        SoundEngine.unlock();
+        clearTimeout(AppState.spinTimerId);
+
+        const spines = AppState.trackedSpines;
+        if (spines.length === 0) {
+          // Ajuda o usuário elevando levemente a sensibilidade se nada foi detectado ainda
+          if (AppState.sensitivity < 80) {
+            AppState.sensitivity = Math.min(85, AppState.sensitivity + 12);
+            sensitivitySlider.value = AppState.sensitivity;
+            sensitivityValueLabel.textContent = `${AppState.sensitivity}%`;
+          }
+          showToast('Nenhuma lombada detectada. Aproxime a câmera da estante.');
+          return;
+        }
+
+        setAppMode('SPINNING');
+
+        // Define número total de saltos da luz (entre 20 e 28 saltos)
+        const totalSteps = spines.length === 1 ? 8 : 22 + Math.floor(Math.random() * 7);
+        AppState.spinTotalSteps = totalSteps;
+        AppState.spinStep = 0;
+
+        // Começa em uma lombada aleatória
+        AppState.highlightedIndex = Math.floor(Math.random() * spines.length);
+
+        const runStep = () => {
+          const currentSpines = AppState.trackedSpines;
+          if (currentSpines.length === 0) {
+            setAppMode('SCANNING');
+            showToast('Lombadas perdidas de vista. Tente novamente.');
+            return;
+          }
+
+          const progress = AppState.spinStep / AppState.spinTotalSteps;
+
+          // Escolhe a próxima lombada (evitando repetir a mesma imediatamente quando há >= 2)
+          if (currentSpines.length > 1) {
+            let nextIdx = AppState.highlightedIndex;
+            // Nos primeiros passos faz saltos mais amplos; no final faz passos curtos dramáticos
+            if (progress > 0.72) {
+              const dir = Math.random() < 0.55 ? 1 : -1;
+              nextIdx = (AppState.highlightedIndex + dir + currentSpines.length) % currentSpines.length;
+            } else {
+              while (nextIdx === AppState.highlightedIndex) {
+                nextIdx = Math.floor(Math.random() * currentSpines.length);
+              }
+            }
+            AppState.highlightedIndex = nextIdx;
+          } else {
+            AppState.highlightedIndex = 0;
+          }
+
+          SoundEngine.playHop(progress);
+          AppState.spinStep++;
+
+          if (AppState.spinStep >= AppState.spinTotalSteps) {
+            // Parou no livro escolhido!
+            const chosenSpine = currentSpines[AppState.highlightedIndex] || currentSpines[0];
+            AppState.lockedSpineId = chosenSpine.id;
+            setAppMode('LOCKED');
+            SoundEngine.playLock();
+          } else {
+            // Curva de desaceleração exponencial suave: rápido no início (55ms), lento no fim (~360ms)
+            const eased = Math.pow(progress, 2.35);
+            const delayMs = 55 + eased * 310;
+            AppState.spinTimerId = setTimeout(runStep, delayMs);
+          }
+        };
+
+        runStep();
+      }
+
+      function spawnDustParticles() {
+        AppState.dustParticles = [];
+        for (let i = 0; i < 24; i++) {
+          AppState.dustParticles.push({
+            rx: Math.random(),
+            ry: Math.random(),
+            vx: (Math.random() - 0.5) * 0.08,
+            vy: -0.05 - Math.random() * 0.12,
+            size: 1 + Math.random() * 2.2,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      // ------------------------------------------------------------------------
+      // RENDERIZAÇÃO DA CAMADA DE REALIDADE AUMENTADA (CANVAS 2D)
+      // ------------------------------------------------------------------------
+      function renderAROverlay(nowMs) {
+        const dt = Math.min(0.05, (nowMs - AppState.lastFrameTime) * 0.001);
+        AppState.lastFrameTime = nowMs;
+
+        const W = AppState.viewportW;
+        const H = AppState.viewportH;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Se estiver no modo Demo, desenha a estante virtual como fundo no canvas
+        if (AppState.sourceType === 'DEMO') {
+          DemoShelf.render(nowMs);
+          drawSourceCoverToTarget(ctx, W, H);
+        }
+
+        // Executa o pipeline de visão computacional se a experiência já começou
+        if (AppState.mode !== 'INIT') {
+          detectVerticalSpines();
+        } else {
+          return;
+        }
+
+        // Suaviza a transição de escurecimento do fundo (efeito teatro)
+        AppState.dimAlpha += (AppState.targetDimAlpha - AppState.dimAlpha) * Math.min(1, dt * 8);
+
+        const spines = AppState.trackedSpines;
+        let activeSpine = null;
+        let activeSpineRank = 1;
+
+        if (AppState.mode === 'SPINNING' && spines.length > 0) {
+          const idx = Math.min(AppState.highlightedIndex, spines.length - 1);
+          activeSpine = spines[idx];
+          activeSpineRank = idx + 1;
+        } else if (AppState.mode === 'LOCKED' && spines.length > 0) {
+          const foundIdx = spines.findIndex((s) => s.id === AppState.lockedSpineId);
+          if (foundIdx !== -1) {
+            activeSpine = spines[foundIdx];
+            activeSpineRank = foundIdx + 1;
+          } else {
+            activeSpine = spines[0];
+            activeSpineRank = 1;
+          }
+        }
+
+        // 1. Máscara de escurecimento cinematográfico com recorte para o livro iluminado
+        if (AppState.dimAlpha > 0.01) {
+          ctx.save();
+          ctx.fillStyle = `rgba(5, 8, 15, ${AppState.dimAlpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.rect(0, 0, W, H);
+
+          if (activeSpine) {
+            const pad = 4;
+            const bx = activeSpine.x * W - pad;
+            const by = activeSpine.y * H - pad;
+            const bw = activeSpine.w * W + pad * 2;
+            const bh = activeSpine.h * H + pad * 2;
+            // Subtrai o retângulo do livro escolhido (regra evenodd) deixando-o 100% nítido
+            drawRoundedRectPath(ctx, bx, by, bw, bh, 10);
+          }
+
+          ctx.fill('evenodd');
+          ctx.restore();
+        }
+
+        // 2. Desenha guias sutis de rastreamento para todas as lombadas detectadas
+        if (AppState.mode === 'SCANNING' || AppState.mode === 'SPINNING') {
+          drawScanningGuides(W, H, spines, activeSpine, nowMs);
+        }
+
+        // 3. Desenha o feixe da Luz Seletora sobre o livro ativo (SPINNING ou LOCKED)
+        if (activeSpine && (AppState.mode === 'SPINNING' || AppState.mode === 'LOCKED')) {
+          drawSelectorSpotlight(W, H, activeSpine, activeSpineRank, nowMs, dt);
+        }
+      }
+
+      // Desenha os marcadores HUD ciano nas lombadas rastreadas + linha de varredura
+      function drawScanningGuides(W, H, spines, activeSpine, nowMs) {
+        const pulse = 0.55 + 0.35 * Math.sin(nowMs * 0.004);
+
+        // Linha sutil de varredura laser horizontal na área central
+        if (AppState.mode === 'SCANNING') {
+          const roiY1 = H * 0.17;
+          const roiY2 = H * 0.83;
+          const sweepX = ((nowMs * 0.16) % (W + 120)) - 60;
+
+          const laserGrad = ctx.createLinearGradient(sweepX - 50, 0, sweepX + 12, 0);
+          laserGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+          laserGrad.addColorStop(0.85, 'rgba(56, 189, 248, 0.14)');
+          laserGrad.addColorStop(1, 'rgba(56, 189, 248, 0.42)');
+
+          ctx.fillStyle = laserGrad;
+          ctx.fillRect(sweepX - 50, roiY1, 62, roiY2 - roiY1);
+        }
+
+        for (let i = 0; i < spines.length; i++) {
+          const s = spines[i];
+          if (activeSpine && s.id === activeSpine.id) continue;
+
+          const x = s.x * W;
+          const y = s.y * H;
+          const w = s.w * W;
+          const h = s.h * H;
+
+          const alpha = AppState.mode === 'SPINNING' ? 0.22 : 0.45 * pulse + 0.25;
+
+          // Preenchimento translúcido muito leve
+          ctx.fillStyle = `rgba(56, 189, 248, ${(alpha * 0.14).toFixed(3)})`;
+          ctx.fillRect(x, y, w, h);
+
+          // Cantoneiras técnicas minimalistas no topo e na base da lombada
+          const bracketLen = Math.min(12, w * 0.35, h * 0.08);
+          ctx.strokeStyle = `rgba(56, 189, 248, ${alpha.toFixed(3)})`;
+          ctx.lineWidth = 1.6;
+          ctx.lineCap = 'round';
+
+          ctx.beginPath();
+          // Canto superior esquerdo
+          ctx.moveTo(x, y + bracketLen);
+          ctx.lineTo(x, y);
+          ctx.lineTo(x + bracketLen, y);
+          // Canto superior direito
+          ctx.moveTo(x + w - bracketLen, y);
+          ctx.lineTo(x + w, y);
+          ctx.lineTo(x + w, y + bracketLen);
+          // Canto inferior esquerdo
+          ctx.moveTo(x, y + h - bracketLen);
+          ctx.lineTo(x, y + h);
+          ctx.lineTo(x + bracketLen, y + h);
+          // Canto inferior direito
+          ctx.moveTo(x + w - bracketLen, y + h);
+          ctx.lineTo(x + w, y + h);
+          ctx.lineTo(x + w, y + h - bracketLen);
+          ctx.stroke();
+        }
+      }
+
+      // Desenha o holofote volumétrico dourado e o cartão AR no livro escolhido
+      function drawSelectorSpotlight(W, H, spine, spineRank, nowMs, dt) {
+        const isLocked = AppState.mode === 'LOCKED';
+        const pad = isLocked ? 5 : 3;
+        const x = spine.x * W - pad;
+        const y = spine.y * H - pad;
+        const w = spine.w * W + pad * 2;
+        const h = spine.h * H + pad * 2;
+        const cx = x + w * 0.5;
+        const cy = y + h * 0.5;
+
+        const breath = isLocked ? 0.85 + 0.15 * Math.sin(nowMs * 0.006) : 1;
+
+        ctx.save();
+
+        // 1. Feixe de luz volumétrico vindo do topo da tela em direção ao livro
+        const beamGrad = ctx.createLinearGradient(cx, 0, cx, y + h);
+        beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.02)');
+        beamGrad.addColorStop(0.55, `rgba(251, 191, 36, ${(isLocked ? 0.18 : 0.12) * breath})`);
+        beamGrad.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(cx - w * 0.35, 0);
+        ctx.lineTo(cx + w * 0.35, 0);
+        ctx.lineTo(x + w + 18, y + h);
+        ctx.lineTo(x - 18, y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        // 2. Halo externo quente ao redor da lombada
+        ctx.shadowColor = 'rgba(251, 191, 36, 0.95)';
+        ctx.shadowBlur = isLocked ? 34 * breath : 22;
+
+        // Iluminação interna aditiva suave
+        ctx.fillStyle = `rgba(254, 240, 138, ${isLocked ? 0.14 : 0.24})`;
+        drawRoundedRectPath(ctx, x, y, w, h, 10);
+        ctx.fill();
+
+        // 3. Moldura luminosa dourada
+        ctx.strokeStyle = isLocked ? '#fef08a' : '#fbbf24';
+        ctx.lineWidth = isLocked ? 3 : 2.5;
+        drawRoundedRectPath(ctx, x, y, w, h, 10);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+        // 4. Partículas de luz flutuando dentro do feixe no estado LOCKED
+        if (isLocked) {
+          for (let i = 0; i < AppState.dustParticles.length; i++) {
+            const p = AppState.dustParticles[i];
+            p.rx += p.vx * dt;
+            p.ry += p.vy * dt;
+            if (p.ry < 0) {
+              p.ry = 1;
+              p.rx = Math.random();
+            }
+            if (p.rx < 0) p.rx = 1;
+            if (p.rx > 1) p.rx = 0;
+
+            const px = x + p.rx * w;
+            const py = y + p.ry * h;
+            const pAlpha = 0.35 + 0.45 * Math.sin(nowMs * 0.005 + p.phase);
+
+            ctx.fillStyle = `rgba(254, 249, 195, ${pAlpha.toFixed(3)})`;
+            ctx.beginPath();
+            ctx.arc(px, py, p.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 5. Etiqueta flutuante de Realidade Aumentada ("Lombada Escolhida!")
+          drawFloatingARCallout(W, H, x, y, w, h, spineRank);
+        }
+
+        ctx.restore();
+      }
+
+      // Desenha o badge AR flutuante ancorado ao livro escolhido sem sair da tela
+      function drawFloatingARCallout(W, H, bx, by, bw, bh, spineRank) {
+        const cardW = Math.min(224, W - 32);
+        const cardH = 58;
+        const centerX = bx + bw * 0.5;
+
+        // Posiciona preferencialmente acima do livro; se não couber, abaixo
+        let cardY = by - cardH - 16;
+        let pointerAbove = false;
+
+        if (cardY < 86) {
+          cardY = Math.min(H - 140 - cardH, by + bh + 16);
+          pointerAbove = true;
+        }
+
+        const cardX = Math.max(16, Math.min(W - cardW - 16, centerX - cardW * 0.5));
+        const anchorX = Math.max(cardX + 18, Math.min(cardX + cardW - 18, centerX));
+
+        // Linha guia conectando o cartão ao livro iluminado
+        ctx.strokeStyle = 'rgba(254, 240, 138, 0.85)';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        if (!pointerAbove) {
+          ctx.moveTo(anchorX, cardY + cardH);
+          ctx.lineTo(centerX, by);
+        } else {
+          ctx.moveTo(anchorX, cardY);
+          ctx.lineTo(centerX, by + bh);
+        }
+        ctx.stroke();
+
+        // Ponto brilhante de ancoragem na borda do livro
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(centerX, pointerAbove ? by + bh : by, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fundo escuro elegante com borda dourada
+        ctx.fillStyle = 'rgba(11, 14, 20, 0.92)';
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.75)';
+        ctx.lineWidth = 1.5;
+        drawRoundedRectPath(ctx, cardX, cardY, cardW, cardH, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        // Texto principal do badge AR
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '700 12px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✦ LOMBADA ESCOLHIDA', cardX + 14, cardY + 21);
+
+        // Subtítulo com posição na prateleira
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '500 12px Inter, sans-serif';
+        ctx.fillText(`Livro #${spineRank} da esquerda para direita`, cardX + 14, cardY + 41);
+      }
+
+      function drawRoundedRectPath(context, x, y, w, h, r) {
+        const radius = Math.min(r, w * 0.5, h * 0.5);
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.arcTo(x + w, y, x + w, y + h, radius);
+        context.arcTo(x + w, y + h, x, y + h, radius);
+        context.arcTo(x, y + h, x, y, radius);
+        context.arcTo(x, y, x + w, y, radius);
+        context.closePath();
+      }
+
+      // ------------------------------------------------------------------------
+      // LOOP PRINCIPAL DE ANIMAÇÃO (60 FPS)
+      // ------------------------------------------------------------------------
+      function animationLoop(nowMs) {
+        renderAROverlay(nowMs);
+        requestAnimationFrame(animationLoop);
+      }
+
+      // ------------------------------------------------------------------------
+      // EVENTOS DE INTERAÇÃO (TOQUE E CLIQUE)
+      // ------------------------------------------------------------------------
+      btnStartCamera.addEventListener('click', activateCameraMode);
+      btnStartDemo.addEventListener('click', activateDemoMode);
+
+      btnToggleSource.addEventListener('click', () => {
+        clearTimeout(AppState.spinTimerId);
+        AppState.trackedSpines = [];
+        if (AppState.sourceType === 'CAMERA') {
+          activateDemoMode();
+        } else {
+          activateCameraMode();
+        }
+      });
+
+      btnToggleSensitivity.addEventListener('click', () => {
+        sensitivityDrawer.classList.toggle('hidden');
+      });
+
+      sensitivitySlider.addEventListener('input', (e) => {
+        AppState.sensitivity = Number(e.target.value);
+        sensitivityValueLabel.textContent = `${AppState.sensitivity}%`;
+      });
+
+      btnToggleAudio.addEventListener('click', () => {
+        SoundEngine.unlock();
+        AppState.audioMuted = !AppState.audioMuted;
+        iconAudioOn.classList.toggle('hidden', AppState.audioMuted);
+        iconAudioOff.classList.toggle('hidden', !AppState.audioMuted);
+        showToast(AppState.audioMuted ? 'Som desativado' : 'Efeitos sonoros ativados', 1600);
+      });
+
+      btnSpin.addEventListener('click', startSelectorRoulette);
+      btnRespin.addEventListener('click', startSelectorRoulette);
+      btnBackScan.addEventListener('click', () => {
+        clearTimeout(AppState.spinTimerId);
+        setAppMode('SCANNING');
+      });
+
+      // Permite também tocar diretamente sobre uma lombada rastreada na tela para iluminá-la
+      arCanvas.addEventListener('click', (e) => {
+        if (AppState.mode !== 'SCANNING' || AppState.trackedSpines.length === 0) return;
+        const clickX = e.clientX / AppState.viewportW;
+        const clickY = e.clientY / AppState.viewportH;
+
+        const tapped = AppState.trackedSpines.find(
+          (s) => clickX >= s.x && clickX <= s.x + s.w && clickY >= s.y && clickY <= s.y + s.h
+        );
+
+        if (tapped) {
+          SoundEngine.unlock();
+          AppState.lockedSpineId = tapped.id;
+          setAppMode('LOCKED');
+          SoundEngine.playLock();
+        }
+      });
+
+      // Inicia o loop de renderização após o carregamento completo da janela
+      window.addEventListener('load', () => {
+        resizeCanvas();
+        requestAnimationFrame(animationLoop);
+      });
+    })();
+  </script>
+</body>
+</html>
