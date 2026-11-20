@@ -3,52 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Luz Seletora de Leitura — WebAR</title>
-  <!-- Tailwind CSS para layout responsivo e utilitários -->
+  <title>Seletor Ótico — Biblioteca &amp; Mediação de Leitura</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Tipografia limpa e técnica -->
+
+  <!-- Tesseract.js v5 para OCR local no navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- Tipografia Editorial Contemporânea e Técnica -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <style>
     :root {
-      --bg-ink: #0b0e14;
-      --accent-amber: #fbbf24;
-      --accent-gold: #fef08a;
-      --accent-cyan: #38bdf8;
+      /* Paleta extraída da arquitetura e mural da Biblioteca */
+      --bg-terrazzo: #F6F4EF;
+      --surface-light: rgba(246, 244, 239, 0.92);
+      --ink-charcoal: #18181B;
+      --ink-muted: #52525B;
+      --border-hairline: rgba(24, 24, 27, 0.14);
+
+      --lib-red: #C83232;
+      --lib-red-dark: #A62626;
+      --lib-yellow: #EAB308;
+      --lib-amber: #D97706;
+      --lib-green: #2D6A4F;
+      --lib-blue: #2B547E;
+      --lib-rose: #D4746A;
+      --lib-wood: #A47148;
     }
 
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
-      user-select: none;
     }
 
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%;
+      height: 100dvh;
       overflow: hidden;
-      background-color: var(--bg-ink);
-      color: #f8fafc;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-terrazzo);
+      color: var(--ink-charcoal);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .font-editorial {
+      font-family: 'Newsreader', Georgia, serif;
     }
 
     .font-mono-tech {
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Camada de vídeo em tela cheia com corte proporcional */
+    /* Camada de vídeo em tela cheia */
     #cameraFeed {
       position: fixed;
       inset: 0;
       width: 100%;
-      height: 100%;
+      height: 100dvh;
       object-fit: cover;
       z-index: 1;
-      background: #0b0e14;
+      background: var(--bg-terrazzo);
     }
 
     /* Canvas principal de Realidade Aumentada */
@@ -56,209 +75,318 @@
       position: fixed;
       inset: 0;
       width: 100%;
-      height: 100%;
+      height: 100dvh;
       display: block;
       z-index: 2;
       touch-action: manipulation;
     }
 
-    /* Painéis translúcidos estilo vidro fosco escuro */
-    .glass-panel {
-      background: rgba(11, 14, 20, 0.72);
+    /* Friso cromático inspirado nas estantes coloridas da biblioteca */
+    .library-color-frieze {
+      height: 5px;
+      width: 100%;
+      background: linear-gradient(
+        90deg,
+        var(--lib-yellow) 0%,
+        var(--lib-yellow) 22%,
+        var(--lib-red) 22%,
+        var(--lib-red) 52%,
+        var(--lib-rose) 52%,
+        var(--lib-rose) 68%,
+        var(--lib-green) 68%,
+        var(--lib-green) 86%,
+        var(--lib-blue) 86%,
+        var(--lib-blue) 100%
+      );
+    }
+
+    /* Padrão sutil inspirado no forro de treliças de madeira */
+    .wood-baffle-pattern {
+      background-image:
+        linear-gradient(to right, rgba(164, 113, 72, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(164, 113, 72, 0.08) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* Superfícies translúcidas */
+    .light-table-panel {
+      background: var(--surface-light);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--border-hairline);
+      box-shadow: 0 14px 38px rgba(24, 24, 27, 0.10), 0 1px 2px rgba(24, 24, 27, 0.06);
+    }
+
+    .light-table-pill {
+      background: rgba(246, 244, 239, 0.93);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-hairline);
+      box-shadow: 0 4px 16px rgba(24, 24, 27, 0.08);
     }
 
-    .glass-pill {
-      background: rgba(11, 14, 20, 0.68);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+    /* Botão principal Vermelho Estante */
+    .btn-library-red {
+      background-color: var(--lib-red);
+      color: #F6F4EF;
+      border: 1px solid rgba(24, 24, 27, 0.14);
+      box-shadow: 0 6px 18px rgba(200, 50, 50, 0.24);
+      transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, opacity 0.2s ease;
     }
 
-    /* Botão principal âmbar com brilho tátil */
-    .btn-amber {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-      color: #0b0e14;
-      box-shadow: 0 0 24px rgba(251, 191, 36, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
-      transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+    .btn-library-red:hover {
+      background-color: var(--lib-red-dark);
     }
 
-    .btn-amber:active {
-      transform: scale(0.96);
+    .btn-library-red:active {
+      transform: scale(0.97);
     }
 
-    .btn-amber:disabled {
+    .btn-library-red:disabled {
       opacity: 0.45;
       box-shadow: none;
       cursor: not-allowed;
     }
 
-    /* Botão secundário vidro */
-    .btn-glass {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #f1f5f9;
-      transition: transform 0.16s ease, background 0.2s ease;
+    /* Botão secundário Papel / Ficha */
+    .btn-paper {
+      background: rgba(255, 254, 251, 0.88);
+      border: 1px solid var(--border-hairline);
+      color: var(--ink-charcoal);
+      transition: transform 0.16s ease, background-color 0.2s ease, border-color 0.2s ease;
     }
 
-    .btn-glass:active {
-      transform: scale(0.96);
-      background: rgba(255, 255, 255, 0.14);
+    .btn-paper:hover {
+      background: #FFFFFF;
+      border-color: rgba(24, 24, 27, 0.28);
     }
 
-    /* Estilização customizada do slider de sensibilidade */
+    .btn-paper:active {
+      transform: scale(0.97);
+    }
+
+    /* Seletor segmentado Lombadas / Ler Capa */
+    .mode-segment-active {
+      background-color: var(--ink-charcoal);
+      color: #F6F4EF;
+      box-shadow: 0 2px 8px rgba(24, 24, 27, 0.18);
+    }
+
+    .mode-segment-inactive {
+      color: var(--ink-muted);
+    }
+
+    .mode-segment-inactive:hover {
+      color: var(--ink-charcoal);
+    }
+
+    /* Slider minimalista Azul Mural */
     input[type="range"].ar-slider {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 6px;
+      height: 4px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.16);
+      background: rgba(24, 24, 27, 0.15);
       outline: none;
     }
 
     input[type="range"].ar-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: #38bdf8;
-      border: 2px solid #0b0e14;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.65);
+      background: var(--lib-blue);
+      border: 2px solid #F6F4EF;
+      box-shadow: 0 2px 6px rgba(43, 84, 126, 0.35);
       cursor: pointer;
     }
 
     input[type="range"].ar-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: #38bdf8;
-      border: 2px solid #0b0e14;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.65);
+      background: var(--lib-blue);
+      border: 2px solid #F6F4EF;
+      box-shadow: 0 2px 6px rgba(43, 84, 126, 0.35);
       cursor: pointer;
     }
 
-    /* Safe areas para dispositivos móveis modernos */
     .safe-top {
-      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-top: max(0.85rem, env(safe-area-inset-top));
     }
 
     .safe-bottom {
-      padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
     }
 
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.75; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.08); }
+    .sheet-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .sheet-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sheet-scroll::-webkit-scrollbar-thumb {
+      background: rgba(24, 24, 27, 0.16);
+      border-radius: 999px;
     }
 
-    .animate-pulse-dot {
-      animation: pulseGlow 2s infinite ease-in-out;
+    @keyframes pulseDot {
+      0%, 100% { opacity: 0.65; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    .animate-pulse-subtle {
+      animation: pulseDot 2.2s infinite ease-in-out;
+    }
+
+    @keyframes sheetSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-sheet-in {
+      animation: sheetSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
   </style>
 </head>
 <body>
 
-  <!-- Elemento de vídeo para captura da câmera traseira -->
+  <!-- Vídeo da câmera traseira -->
   <video id="cameraFeed" playsinline autoplay muted></video>
 
-  <!-- Canvas de Realidade Aumentada sobreposto -->
+  <!-- Canvas de Realidade Aumentada -->
   <canvas id="arCanvas"></canvas>
 
   <!-- ===================================================================== -->
-  <!-- TELA INICIAL (ONBOARDING / PERMISSÃO DE CÂMERA OU MODO DEMO)          -->
+  <!-- TELA INICIAL — IDENTIDADE ARQUITETÔNICA DA BIBLIOTECA                 -->
   <!-- ===================================================================== -->
-  <div id="startOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 sm:p-6 bg-[#0b0e14]/92 backdrop-blur-md transition-opacity duration-300">
-    <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
-      <!-- Halo decorativo superior -->
-      <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-amber-400/15 blur-3xl"></div>
+  <div id="startOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 sm:p-6 bg-[#F6F4EF]/95 wood-baffle-pattern backdrop-blur-md transition-opacity duration-300">
+    <div class="light-table-panel w-full max-w-md rounded-2xl overflow-hidden relative">
+      <!-- Friso cromático das estantes -->
+      <div class="library-color-frieze"></div>
 
-      <!-- Ícone vetorial de estante com feixe de luz -->
-      <div class="mx-auto mb-5 w-16 h-16 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center shadow-lg">
-        <svg class="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H10v20H6.5a2.5 2.5 0 0 1 0-5H10" />
-          <path d="M10 2h4v20h-4z" />
-          <path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v13a2.5 2.5 0 0 1-2.5 2.5H14" />
-          <path d="M12 2v20" class="text-amber-200" />
-        </svg>
-      </div>
+      <div class="p-6 sm:p-8">
+        <!-- Cabeçalho técnico -->
+        <div class="flex items-center justify-between text-[11px] font-mono-tech text-[#52525B] pb-4 mb-5 border-b border-[#18181B]/12">
+          <span>MEDIAÇÃO &amp; ACERVO // WEBAR</span>
+          <span class="text-[#C83232] font-semibold">BIBLIOTECA</span>
+        </div>
 
-      <span class="inline-block px-3 py-1 mb-3 text-[11px] font-mono-tech uppercase tracking-widest text-sky-400 bg-sky-400/10 border border-sky-400/25 rounded-full">
-        WebAR • Visão Computacional
-      </span>
-
-      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2.5">
-        Luz Seletora de Leitura
-      </h1>
-
-      <p class="text-sm sm:text-base text-slate-300 leading-relaxed mb-6">
-        Aponte a câmera para uma estante de livros. O sistema rastreia as lombadas em tempo real e projeta um feixe de luz seletor para escolher sua próxima leitura.
-      </p>
-
-      <!-- Mensagem de erro/aviso amigável caso a câmera falhe -->
-      <div id="cameraErrorBox" class="hidden mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-left text-xs sm:text-sm text-amber-200 leading-snug">
-        <div class="flex items-start gap-2.5">
-          <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        <!-- Ilustração geométrica inspirada no mural, luminária pendente amarela e estantes -->
+        <div class="mb-5 rounded-xl border border-[#18181B]/12 bg-[#EFECE4] p-3.5 flex items-center gap-4">
+          <svg class="w-16 h-14 shrink-0" viewBox="0 0 80 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Blocos geométricos do mural -->
+            <rect x="2" y="4" width="22" height="24" rx="2" fill="#2B547E"/>
+            <path d="M28 28L40 6L52 28H28Z" fill="#EAB308"/>
+            <circle cx="64" cy="16" r="11" fill="#2D6A4F"/>
+            <!-- Luminária pendente amarela característica -->
+            <line x1="40" y1="0" x2="40" y2="18" stroke="#18181B" stroke-width="1.5"/>
+            <path d="M31 28L34 18H46L49 28H31Z" fill="#EAB308" stroke="#18181B" stroke-width="1.3"/>
+            <!-- Feixe de luz quente -->
+            <path d="M32 28L22 62H58L48 28H32Z" fill="#EAB308" fill-opacity="0.22"/>
+            <!-- Lombadas coloridas na base -->
+            <rect x="10" y="40" width="9" height="22" rx="1" fill="#EAB308"/>
+            <rect x="21" y="38" width="10" height="24" rx="1" fill="#C83232"/>
+            <rect x="33" y="36" width="11" height="26" rx="1" fill="#F6F4EF" stroke="#18181B" stroke-width="1.4"/>
+            <rect x="46" y="39" width="9" height="23" rx="1" fill="#2D6A4F"/>
+            <rect x="57" y="41" width="10" height="21" rx="1" fill="#D4746A"/>
+            <!-- Prateleira -->
+            <line x1="4" y1="63" x2="76" y2="63" stroke="#18181B" stroke-width="2"/>
           </svg>
-          <span id="cameraErrorText">Não foi possível acessar a câmera. Você pode testar imediatamente com a estante virtual.</span>
+
+          <div class="text-xs text-[#52525B] leading-snug">
+            <span class="font-semibold text-[#18181B] block mb-0.5">Dois modos de descoberta:</span>
+            Sorteie uma lombada na estante com a luz seletora ou enquadre a capa de um livro exposto.
+          </div>
+        </div>
+
+        <h1 class="font-editorial text-3xl sm:text-[34px] font-medium tracking-tight text-[#18181B] leading-tight mb-2.5">
+          Seletor Ótico da Biblioteca
+        </h1>
+
+        <p class="text-sm text-[#52525B] leading-relaxed mb-6">
+          Sem saber o que ler hoje? Deixe a luz escolher um exemplar na estante ou aponte para uma capa para abrir sinopse, vídeos e podcasts sobre a obra.
+        </p>
+
+        <!-- Aviso caso a câmera não esteja disponível -->
+        <div id="cameraErrorBox" class="hidden mb-5 p-3.5 rounded-xl bg-[#C83232]/10 border border-[#C83232]/25 text-xs sm:text-sm text-[#18181B] leading-snug">
+          <span id="cameraErrorText">Câmera indisponível neste dispositivo. Alternando para a Biblioteca Virtual...</span>
+        </div>
+
+        <!-- Ações principais -->
+        <div class="space-y-2.5">
+          <button id="btnStartCamera" type="button" class="btn-library-red w-full py-3.5 px-5 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 cursor-pointer">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+            <span>Ativar Câmera Real</span>
+          </button>
+
+          <button id="btnStartDemo" type="button" class="btn-paper w-full py-3.5 px-5 rounded-xl font-medium text-sm sm:text-base flex items-center justify-center gap-2.5 cursor-pointer">
+            <svg class="w-4 h-4 text-[#C83232]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="2"/>
+              <line x1="8" y1="4" x2="8" y2="20"/>
+              <line x1="13" y1="4" x2="13" y2="20"/>
+            </svg>
+            <span>Explorar Biblioteca Virtual (Demo)</span>
+          </button>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-[#18181B]/12 flex items-center justify-between text-[11px] font-mono-tech text-[#52525B]">
+          <span>LOMBADAS + CAPAS</span>
+          <span>BOOKS • YOUTUBE • PODCASTS</span>
         </div>
       </div>
-
-      <!-- Botões de ação iniciais -->
-      <div class="space-y-3">
-        <button id="btnStartCamera" type="button" class="btn-amber w-full py-3.5 px-5 rounded-2xl font-semibold text-base flex items-center justify-center gap-2.5 cursor-pointer">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-            <circle cx="12" cy="13" r="3"/>
-          </svg>
-          <span>Ativar Câmera</span>
-        </button>
-
-        <button id="btnStartDemo" type="button" class="btn-glass w-full py-3.5 px-5 rounded-2xl font-medium text-sm sm:text-base flex items-center justify-center gap-2.5 cursor-pointer">
-          <svg class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-            <line x1="8" y1="21" x2="16" y2="21"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-          <span>Testar com Estante Virtual (Demo)</span>
-        </button>
-      </div>
-
-      <p class="mt-5 text-[11px] text-slate-400">
-        Processamento 100% local no navegador • Nenhuma imagem é enviada à nuvem
-      </p>
     </div>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- HUD SUPERIOR (STATUS DE RASTREAMENTO, MODO E CONTROLES RÁPIDOS)       -->
+  <!-- HUD SUPERIOR — STATUS, FONTE DE VÍDEO E CADERNO                       -->
   <!-- ===================================================================== -->
   <header id="hudTop" class="hidden fixed top-0 inset-x-0 z-20 safe-top px-3 sm:px-5 pointer-events-none">
-    <div class="max-w-3xl mx-auto flex flex-col gap-2.5">
-      <div class="flex items-center justify-between gap-2">
-        <!-- Pílula de status e contagem de lombadas -->
-        <div class="glass-pill pointer-events-auto rounded-full py-2 px-3.5 flex items-center gap-2.5 shadow-lg">
-          <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse-dot shrink-0"></span>
-          <span id="spineCounterText" class="text-xs sm:text-sm font-medium text-slate-100 truncate">
-            Buscando lombadas...
-          </span>
+    <div class="max-w-4xl mx-auto flex flex-col gap-2">
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <!-- Indicadores de Rastreamento e Motor OCR -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+          <div class="light-table-pill rounded-full py-1.5 px-3.5 flex items-center gap-2">
+            <span id="statusDot" class="w-2 h-2 rounded-full bg-[#EAB308] animate-pulse-subtle shrink-0"></span>
+            <span id="spineCounterText" class="text-xs font-medium text-[#18181B] whitespace-nowrap">
+              Calibrando visor...
+            </span>
+          </div>
+
+          <div class="light-table-pill rounded-full py-1.5 px-3 hidden sm:flex items-center gap-1.5 text-[11px] font-mono-tech text-[#52525B]">
+            <span id="ocrStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            <span id="ocrStatusLabel">OCR: carregando</span>
+          </div>
         </div>
 
-        <!-- Botões utilitários à direita -->
-        <div class="flex items-center gap-2 pointer-events-auto">
-          <!-- Alternar Câmera / Demo -->
-          <button id="btnToggleSource" type="button" title="Alternar entre Câmera e Estante Virtual" class="glass-pill rounded-full py-2 px-3 text-xs font-mono-tech text-slate-200 hover:text-white flex items-center gap-1.5 cursor-pointer active:scale-95 transition">
-            <span id="sourceBadgeText">CÂMERA</span>
+        <!-- Controles à direita -->
+        <div class="flex items-center gap-1.5 pointer-events-auto">
+          <!-- Alternar Câmera Real / Biblioteca Virtual -->
+          <button id="btnToggleSource" type="button" title="Alternar entre Câmera Real e Biblioteca Virtual" class="light-table-pill rounded-full py-1.5 px-3 text-[11px] font-mono-tech font-medium text-[#18181B] hover:border-[#18181B]/30 flex items-center gap-1.5 cursor-pointer active:scale-95 transition">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#C83232]"></span>
+            <span id="sourceBadgeText">CÂMERA REAL</span>
           </button>
 
-          <!-- Botão de Sensibilidade -->
-          <button id="btnToggleSensitivity" type="button" title="Ajustar sensibilidade de detecção" aria-label="Sensibilidade" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-slate-200 hover:text-sky-400 cursor-pointer active:scale-95 transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Botão da Sessão Salva -->
+          <button id="btnOpenSessionList" type="button" title="Fichas guardadas na sessão" class="light-table-pill rounded-full py-1.5 px-3 text-[11px] font-mono-tech font-medium text-[#2B547E] hover:bg-white flex items-center gap-1 cursor-pointer active:scale-95 transition">
+            <span>FICHAS</span>
+            <span id="sessionCountBadge" class="px-1.5 py-0.2 rounded-full bg-[#2B547E]/12 text-[#2B547E]">0</span>
+          </button>
+
+          <!-- Calibração de Sensibilidade (modo Lombadas) -->
+          <button id="btnToggleSensitivity" type="button" title="Calibrar detecção de lombadas" aria-label="Sensibilidade" class="light-table-pill w-8 h-8 rounded-full flex items-center justify-center text-[#18181B] hover:text-[#2B547E] cursor-pointer active:scale-95 transition">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
               <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
               <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
@@ -266,14 +394,13 @@
             </svg>
           </button>
 
-          <!-- Botão de Áudio (Mudo / Ativo) -->
-          <button id="btnToggleAudio" type="button" title="Alternar efeitos sonoros" aria-label="Som" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-slate-200 hover:text-amber-400 cursor-pointer active:scale-95 transition">
-            <svg id="iconAudioOn" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Controle de Áudio -->
+          <button id="btnToggleAudio" type="button" title="Alternar feedback acústico" aria-label="Áudio" class="light-table-pill w-8 h-8 rounded-full flex items-center justify-center text-[#18181B] hover:text-[#C83232] cursor-pointer active:scale-95 transition">
+            <svg id="iconAudioOn" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
             </svg>
-            <svg id="iconAudioOff" class="w-4 h-4 hidden text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="iconAudioOff" class="w-3.5 h-3.5 hidden text-[#52525B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
               <line x1="23" y1="9" x2="17" y2="15"/>
               <line x1="17" y1="9" x2="23" y2="15"/>
@@ -282,95 +409,333 @@
         </div>
       </div>
 
-      <!-- Painel colapsável de Sensibilidade de Detecção -->
-      <div id="sensitivityDrawer" class="hidden glass-panel pointer-events-auto rounded-2xl p-3.5 max-w-xs ml-auto w-full">
+      <!-- Status OCR compacto para mobile -->
+      <div class="flex sm:hidden items-center justify-between px-1">
+        <span id="ocrStatusMobile" class="text-[10px] font-mono-tech text-[#52525B] bg-[#F6F4EF]/90 px-2.5 py-0.5 rounded-full border border-[#18181B]/12">
+          OCR: carregando...
+        </span>
+      </div>
+
+      <!-- Painel colapsável de Calibração Ótica -->
+      <div id="sensitivityDrawer" class="hidden light-table-panel pointer-events-auto rounded-xl p-3.5 max-w-xs ml-auto w-full">
         <div class="flex items-center justify-between text-xs mb-2">
-          <span class="font-medium text-slate-200">Sensibilidade de Bordas</span>
-          <span id="sensitivityValueLabel" class="font-mono-tech text-sky-400">62%</span>
+          <span class="font-medium text-[#18181B]">Limiar de Separação Ótica</span>
+          <span id="sensitivityValueLabel" class="font-mono-tech text-[#2B547E] font-medium">64%</span>
         </div>
-        <input id="sensitivitySlider" type="range" min="15" max="95" value="62" class="ar-slider" />
-        <div class="flex justify-between text-[10px] text-slate-400 mt-1.5">
-          <span>Menos ruído</span>
-          <span>Mais lombadas</span>
+        <input id="sensitivitySlider" type="range" min="15" max="95" value="64" class="ar-slider" />
+        <div class="flex justify-between text-[10px] font-mono-tech text-[#52525B] mt-1.5">
+          <span>SELETIVO</span>
+          <span>SENSÍVEL</span>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- ===================================================================== -->
-  <!-- TOAST DE FEEDBACK NÃO-INTRUSIVO                                       -->
-  <!-- ===================================================================== -->
-  <div id="toastBanner" class="pointer-events-none fixed top-20 left-1/2 -translate-x-1/2 z-30 opacity-0 transition-opacity duration-250 px-4 w-full max-w-sm">
-    <div class="glass-panel rounded-2xl py-2.5 px-4 text-center text-xs sm:text-sm text-amber-200 border border-amber-400/30 shadow-xl">
-      <span id="toastText">Aponte para uma estante com livros lado a lado.</span>
+  <!-- Banner discreto de notificações -->
+  <div id="toastBanner" class="fixed top-16 inset-x-0 z-30 flex justify-center px-4 pointer-events-none opacity-0 transition-opacity duration-300">
+    <div class="light-table-pill rounded-full py-1.5 px-4 text-xs font-medium text-[#18181B] shadow-md">
+      <span id="toastText">Calibrando...</span>
     </div>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- CONTROLES INFERIORES DE AÇÃO (SORTEAR / VOLTAR AO SCANNER)            -->
+  <!-- BARRA INFERIOR DO VISOR — SELETOR DE MODO + AÇÃO PRINCIPAL            -->
   <!-- ===================================================================== -->
   <footer id="hudBottom" class="hidden fixed bottom-0 inset-x-0 z-20 safe-bottom px-4 pointer-events-none">
-    <div class="max-w-md mx-auto flex flex-col items-center gap-3">
-      <!-- Dica contextual acima do botão -->
-      <p id="bottomHintText" class="text-xs text-slate-300/90 bg-[#0b0e14]/65 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-center">
-        Enquadre as lombadas na área central e toque para sortear
+    <div class="max-w-md mx-auto flex flex-col items-center gap-2">
+      <!-- Dica contextual -->
+      <p id="bottomHintText" class="text-[11px] font-mono-tech text-[#18181B] bg-[#F6F4EF]/94 backdrop-blur-md px-3.5 py-1 rounded-full border border-[#18181B]/14 text-center shadow-sm">
+        TOQUE EM UMA LOMBADA OU SORTEIE UMA LEITURA
       </p>
 
-      <!-- Grupo 1: Modo SCANNING / SPINNING -->
-      <div id="controlsScanning" class="w-full pointer-events-auto">
-        <button id="btnSpin" type="button" class="btn-amber w-full py-4 px-6 rounded-2xl font-bold text-base sm:text-lg tracking-wide flex items-center justify-center gap-2.5 cursor-pointer">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      <!-- Alternador de Modo de Captura: Lombadas (Sortear) vs. Ler Capa -->
+      <div id="captureModeSwitcher" class="pointer-events-auto light-table-pill rounded-full p-1 flex items-center gap-1">
+        <button id="btnModeSpine" type="button" class="mode-segment-active px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#EAB308]"></span>
+          <span>Lombadas</span>
+        </button>
+        <button id="btnModeCover" type="button" class="mode-segment-inactive px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2"/>
+            <line x1="8" y1="7" x2="16" y2="7"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+          <span>Ler Capa</span>
+        </button>
+      </div>
+
+      <!-- Controles do Modo LOMBADAS (SCANNING / SPINNING) -->
+      <div id="controlsSpineMode" class="w-full pointer-events-auto">
+        <button id="btnSpin" type="button" class="btn-library-red w-full py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 cursor-pointer">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="3" x2="12" y2="7"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+            <line x1="3" y1="12" x2="7" y2="12"/>
+            <line x1="17" y1="12" x2="21" y2="12"/>
           </svg>
           <span id="btnSpinLabel">Sortear Leitura</span>
         </button>
       </div>
 
-      <!-- Grupo 2: Modo LOCKED (Lombada Escolhida) -->
-      <div id="controlsLocked" class="hidden w-full grid grid-cols-2 gap-3 pointer-events-auto">
-        <button id="btnBackScan" type="button" class="btn-glass py-3.5 px-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-          </svg>
-          <span>Scanner</span>
-        </button>
+      <!-- Controles do Modo LER CAPA (SCANNING) -->
+      <div id="controlsCoverMode" class="hidden w-full pointer-events-auto space-y-2">
+        <!-- Navegação rápida de capas no Modo Biblioteca Virtual (Demo) -->
+        <div id="demoCoverNav" class="hidden flex items-center justify-between gap-2 px-1">
+          <button id="btnPrevDemoCover" type="button" class="btn-paper py-1.5 px-3 rounded-lg text-[11px] font-mono-tech cursor-pointer">
+            ← CAPA ANTERIOR
+          </button>
+          <span id="demoCoverCounter" class="text-[11px] font-mono-tech text-[#18181B] bg-[#F6F4EF]/90 px-2.5 py-1 rounded-md border border-[#18181B]/12">
+            MESA DE EXPOSIÇÃO 1/6
+          </span>
+          <button id="btnNextDemoCover" type="button" class="btn-paper py-1.5 px-3 rounded-lg text-[11px] font-mono-tech cursor-pointer">
+            PRÓXIMA CAPA →
+          </button>
+        </div>
 
-        <button id="btnRespin" type="button" class="btn-amber py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        <button id="btnCaptureCover" type="button" class="btn-library-red w-full py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 cursor-pointer">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7V4h3"/><path d="M20 7V4h-3"/>
+            <path d="M4 17v3h3"/><path d="M20 17v3h-3"/>
+            <rect x="7" y="6" width="10" height="12" rx="1"/>
           </svg>
-          <span>Sortear Outro</span>
+          <span>Capturar &amp; Ler Capa</span>
         </button>
+      </div>
+
+      <!-- Estado LOCKED: Pílula flutuante compacta e não intrusiva -->
+      <div id="lockedActionPill" class="hidden w-full pointer-events-auto">
+        <div class="light-table-pill rounded-full p-1.5 flex items-center gap-1.5">
+          <button id="btnOpenBookDrawer" type="button" class="btn-library-red flex-1 py-2.5 px-4 rounded-full font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
+            <span id="pillStatusDot" class="w-2 h-2 rounded-full bg-[#EAB308] animate-pulse shrink-0"></span>
+            <span>Abrir ficha da obra</span>
+            <span id="pillReadyTag" class="hidden text-[10px] font-mono-tech uppercase px-1.5 py-0.5 rounded-full bg-[#18181B]/25 text-[#F6F4EF]">
+              Pronta
+            </span>
+          </button>
+
+          <button id="btnPillNewDraw" type="button" class="btn-paper py-2.5 px-4 rounded-full font-medium text-xs sm:text-sm text-[#18181B] shrink-0 cursor-pointer">
+            Nova leitura
+          </button>
+        </div>
       </div>
     </div>
   </footer>
 
+  <!-- ===================================================================== -->
+  <!-- GAVETA EDITORIAL DESLIZANTE (ABERTA SOB DEMANDA PELO USUÁRIO)         -->
+  <!-- ===================================================================== -->
+  <section id="readingSheet" class="hidden fixed inset-x-0 bottom-0 z-30 safe-bottom px-2.5 sm:px-4 pb-2.5 pointer-events-none">
+    <div class="light-table-panel animate-sheet-in pointer-events-auto max-w-2xl mx-auto rounded-2xl overflow-hidden flex flex-col max-h-[82dvh] sm:max-h-[78dvh]">
+      <!-- Friso cromático da biblioteca -->
+      <div class="library-color-frieze shrink-0"></div>
+
+      <!-- Cabeçalho técnico da ficha catalográfica -->
+      <div class="px-4 py-2.5 border-b border-[#18181B]/12 flex items-center justify-between gap-2 bg-[#F6F4EF]/95 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#C83232]"></span>
+          <span class="text-[11px] font-mono-tech uppercase tracking-wider text-[#52525B]">
+            Ficha da Biblioteca // <span id="sheetSourceTag" class="text-[#18181B] font-medium">INDEXANDO</span>
+          </span>
+        </div>
+        <button id="btnCloseSheetTop" type="button" aria-label="Recolher ficha" class="text-xs font-mono-tech text-[#52525B] hover:text-[#18181B] px-2.5 py-1 rounded-lg border border-[#18181B]/12 bg-white/75 cursor-pointer">
+          VISOR ✕
+        </button>
+      </div>
+
+      <!-- Campo de busca editável no topo da gaveta -->
+      <div class="px-4 py-2.5 border-b border-[#18181B]/12 bg-[#EFECE4]/90 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1 min-w-0">
+            <input
+              id="ocrEditInput"
+              type="text"
+              aria-label="Título ou autor da obra"
+              placeholder="Corrigir leitura ou digitar título da obra..."
+              class="w-full min-w-0 bg-white border border-[#18181B]/18 rounded-xl px-3 py-2 text-xs sm:text-sm text-[#18181B] placeholder-[#52525B]/75 focus:outline-none focus:border-[#C83232]"
+            />
+          </div>
+          <button id="btnRetrySearch" type="button" class="btn-library-red px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer">
+            Pesquisar
+          </button>
+        </div>
+      </div>
+
+      <!-- Conteúdo rolável da gaveta -->
+      <div class="p-4 sm:p-5 overflow-y-auto sheet-scroll space-y-4">
+
+        <!-- Estado de Carregamento -->
+        <div id="sheetLoadingState" class="py-6 flex flex-col items-center justify-center text-center gap-3">
+          <div class="w-8 h-8 rounded-full border-2 border-[#18181B]/15 border-t-[#C83232] animate-spin"></div>
+          <div>
+            <p id="sheetLoadingTitle" class="font-editorial text-lg text-[#18181B]">Extraindo tipografia do exemplar...</p>
+            <p id="sheetLoadingSub" class="text-xs font-mono-tech text-[#52525B] mt-1">CONSULTANDO CATÁLOGO, VÍDEOS E PODCASTS</p>
+          </div>
+        </div>
+
+        <!-- Estado de Resultado Carregado -->
+        <div id="sheetResultState" class="hidden space-y-4">
+          <!-- Bloco Principal: Capa + Metadados -->
+          <div class="flex gap-3.5 sm:gap-4 items-start">
+            <!-- Capa Oficial ou Fallback Tipográfico -->
+            <div id="bookCoverWrapper" class="w-20 sm:w-24 aspect-[2/3] rounded-lg border border-[#18181B]/16 bg-[#EAE5D9] shrink-0 overflow-hidden shadow-sm relative flex items-center justify-center">
+              <img id="bookCoverImg" alt="Capa do livro" class="w-full h-full object-cover hidden" />
+              <div id="bookCoverFallback" class="w-full h-full p-2 flex flex-col justify-between bg-[#EFECE4] text-[#18181B]">
+                <span class="text-[8px] font-mono-tech uppercase tracking-wider text-[#C83232] border-b border-[#18181B]/15 pb-1">ACERVO</span>
+                <span id="fallbackCoverTitle" class="font-editorial text-[11px] font-semibold leading-tight line-clamp-4">Título</span>
+                <span id="fallbackCoverAuthor" class="text-[8px] text-[#52525B] truncate">Autor</span>
+              </div>
+            </div>
+
+            <!-- Dados Bibliográficos -->
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                <span id="bookApiBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded border border-[#18181B]/14 bg-white text-[#18181B] font-medium">
+                  GOOGLE BOOKS
+                </span>
+                <span id="bookMetaLine" class="text-[11px] font-mono-tech text-[#52525B]">
+                  2020 • 192 p.
+                </span>
+              </div>
+
+              <h2 id="bookTitle" class="font-editorial text-xl sm:text-2xl font-semibold text-[#18181B] leading-snug">
+                Título do Livro
+              </h2>
+
+              <p id="bookSubtitle" class="hidden text-xs sm:text-sm text-[#52525B] mt-0.5 leading-snug">
+                Subtítulo da obra
+              </p>
+
+              <p id="bookAuthor" class="text-xs sm:text-sm font-semibold text-[#C83232] mt-1">
+                Autor(a)
+              </p>
+
+              <p id="bookPublisher" class="text-[11px] text-[#52525B] mt-0.5">
+                Editora
+              </p>
+            </div>
+          </div>
+
+          <!-- Sinopse com expandir/recolher -->
+          <div class="pt-3 border-t border-[#18181B]/12">
+            <p id="bookSynopsis" class="text-xs sm:text-sm text-[#18181B]/90 leading-relaxed line-clamp-3">
+              Sinopse indisponível para esta edição.
+            </p>
+            <button id="btnToggleSynopsis" type="button" class="hidden mt-1.5 text-xs font-semibold text-[#C83232] hover:underline cursor-pointer">
+              Ler sinopse completa
+            </button>
+          </div>
+
+          <!-- Seção 1: Em áudio & podcasts -->
+          <div id="podcastSection" class="pt-3 border-t border-[#18181B]/12 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-[#2D6A4F]"></span>
+                <h3 class="font-editorial text-base sm:text-lg font-medium text-[#18181B]">
+                  Em áudio &amp; podcasts
+                </h3>
+              </div>
+              <span id="podcastSourceBadge" class="text-[10px] font-mono-tech text-[#2D6A4F] font-medium">
+                PODCASTS
+              </span>
+            </div>
+
+            <div id="podcastCardsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <!-- Preenchido dinamicamente com até 3 episódios de podcast ou roteiros de escuta -->
+            </div>
+          </div>
+
+          <!-- Seção 2: Em vídeo & debates (YouTube) -->
+          <div id="youtubeSection" class="pt-3 border-t border-[#18181B]/12 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-[#C83232]"></span>
+                <h3 class="font-editorial text-base sm:text-lg font-medium text-[#18181B]">
+                  Em vídeo &amp; debates (YouTube)
+                </h3>
+              </div>
+              <span id="youtubeSourceBadge" class="text-[10px] font-mono-tech text-[#52525B]">
+                CURADORIA
+              </span>
+            </div>
+
+            <div id="youtubeCardsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <!-- Preenchido dinamicamente com até 3 vídeos reais ou 3 sugestões editoriais -->
+            </div>
+          </div>
+
+          <!-- Painel Compacto de Diagnóstico Ótico & OCR -->
+          <div class="rounded-xl bg-[#EFECE4]/85 border border-[#18181B]/12 p-2.5 flex items-center gap-3">
+            <div class="h-11 max-w-[110px] rounded border border-[#18181B]/15 bg-white overflow-hidden shrink-0 flex items-center justify-center p-0.5">
+              <img id="ocrCropPreviewImg" alt="Recorte OCR" class="h-full w-auto object-contain" />
+            </div>
+            <div class="flex-1 min-w-0 text-[10px] font-mono-tech text-[#52525B]">
+              <div class="flex items-center justify-between gap-2">
+                <span id="diagModeLabel">RECORTE ÓTICO</span>
+                <span id="diagConfidenceBadge" class="text-[#18181B] font-medium">CONF: --%</span>
+              </div>
+              <div class="truncate mt-0.5">
+                BRUTO: <span id="ocrRawTextDisplay" class="text-[#18181B]">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Ações da Ficha -->
+        <div class="pt-2.5 border-t border-[#18181B]/12 grid grid-cols-3 gap-2">
+          <button id="btnSheetRespin" type="button" class="btn-library-red py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>Nova leitura</span>
+          </button>
+
+          <button id="btnSaveToSession" type="button" class="btn-paper py-2.5 px-3 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 text-[#18181B] cursor-pointer">
+            <span id="btnSaveLabel">Guardar ficha</span>
+          </button>
+
+          <button id="btnCloseSheet" type="button" class="btn-paper py-2.5 px-3 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>Voltar ao visor</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL DE FICHAS GUARDADAS NA SESSÃO                                   -->
+  <!-- ===================================================================== -->
+  <div id="sessionModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#18181B]/35 backdrop-blur-sm">
+    <div class="light-table-panel w-full max-w-lg rounded-2xl overflow-hidden flex flex-col max-h-[80vh]">
+      <div class="library-color-frieze"></div>
+      <div class="px-5 py-3.5 border-b border-[#18181B]/10 flex items-center justify-between">
+        <div>
+          <h3 class="font-editorial text-xl font-semibold text-[#18181B]">Caderno da Sessão</h3>
+          <p class="text-[11px] font-mono-tech text-[#52525B]">LEITURAS INDEXADAS NESTE APARELHO</p>
+        </div>
+        <button id="btnCloseSessionModal" type="button" class="btn-paper px-3 py-1.5 rounded-lg text-xs font-mono-tech cursor-pointer">
+          FECHAR
+        </button>
+      </div>
+
+      <div id="sessionListContainer" class="p-4 overflow-y-auto sheet-scroll space-y-2.5 flex-1">
+        <!-- Preenchido dinamicamente -->
+      </div>
+
+      <div class="px-5 py-3 border-t border-[#18181B]/10 flex items-center justify-between gap-2 bg-[#F6F4EF]">
+        <button id="btnClearSession" type="button" class="text-xs text-[#C83232] hover:underline cursor-pointer">
+          Limpar lista
+        </button>
+        <button id="btnCopySessionList" type="button" class="btn-paper px-3.5 py-2 rounded-xl text-xs font-medium text-[#2B547E] cursor-pointer">
+          Copiar referências
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     /**
      * ============================================================================
-     * LUZ SELETORA DE LEITURA — PROTÓTIPO WEBAR
+     * SELETOR ÓTICO DA BIBLIOTECA — WEBAR (LOMBADAS + CAPAS + PODCASTS + VÍDEOS)
      * ============================================================================
-     * Arquitetura:
-     * 1. Fonte de Vídeo: Câmera traseira real (getUserMedia) OU Estante Virtual
-     *    procedural animada (para testes em desktop ou ambientes sem livros).
-     * 2. Visão Computacional (JavaScript Puro):
-     *    - Subamostragem de cada quadro para um buffer offscreen de 160x120 px
-     *      preservando o recorte exato "object-fit: cover" da tela.
-     *    - Cálculo de gradientes horizontais de luminância (estilo Sobel) para
-     *      detectar divisórias verticais entre lombadas na Região de Interesse (ROI).
-     *    - Estimativa de topo e base de cada livro via energia de borda horizontal.
-     *    - Estabilização temporal (rastreamento por proximidade + interpolação Lerp)
-     *      para manter as caixas firmes e sem trepidação.
-     * 3. Renderização AR & Roleta Seletora:
-     *    - Canvas 2D em tela cheia com guias ciano em modo SCANNING.
-     *    - Feixe de luz volumétrico dourado saltando com desaceleração exponencial
-     *      em modo SPINNING.
-     *    - Recorte dramático estilo holofote de teatro em modo LOCKED com cartão
-     *      flutuante ancorado ao livro sorteado e partículas de poeira iluminada.
-     * 4. Áudio Procedural: Web Audio API sem arquivos externos.
      */
-
     (function () {
       'use strict';
 
@@ -391,8 +756,14 @@
       const hudBottom = document.getElementById('hudBottom');
       const statusDot = document.getElementById('statusDot');
       const spineCounterText = document.getElementById('spineCounterText');
+      const ocrStatusDot = document.getElementById('ocrStatusDot');
+      const ocrStatusLabel = document.getElementById('ocrStatusLabel');
+      const ocrStatusMobile = document.getElementById('ocrStatusMobile');
+
       const btnToggleSource = document.getElementById('btnToggleSource');
       const sourceBadgeText = document.getElementById('sourceBadgeText');
+      const btnOpenSessionList = document.getElementById('btnOpenSessionList');
+      const sessionCountBadge = document.getElementById('sessionCountBadge');
       const btnToggleSensitivity = document.getElementById('btnToggleSensitivity');
       const sensitivityDrawer = document.getElementById('sensitivityDrawer');
       const sensitivitySlider = document.getElementById('sensitivitySlider');
@@ -402,291 +773,1404 @@
       const iconAudioOff = document.getElementById('iconAudioOff');
 
       const bottomHintText = document.getElementById('bottomHintText');
-      const controlsScanning = document.getElementById('controlsScanning');
-      const controlsLocked = document.getElementById('controlsLocked');
+      const captureModeSwitcher = document.getElementById('captureModeSwitcher');
+      const btnModeSpine = document.getElementById('btnModeSpine');
+      const btnModeCover = document.getElementById('btnModeCover');
+
+      const controlsSpineMode = document.getElementById('controlsSpineMode');
       const btnSpin = document.getElementById('btnSpin');
       const btnSpinLabel = document.getElementById('btnSpinLabel');
-      const btnBackScan = document.getElementById('btnBackScan');
-      const btnRespin = document.getElementById('btnRespin');
+
+      const controlsCoverMode = document.getElementById('controlsCoverMode');
+      const demoCoverNav = document.getElementById('demoCoverNav');
+      const btnPrevDemoCover = document.getElementById('btnPrevDemoCover');
+      const demoCoverCounter = document.getElementById('demoCoverCounter');
+      const btnNextDemoCover = document.getElementById('btnNextDemoCover');
+      const btnCaptureCover = document.getElementById('btnCaptureCover');
+
+      // Pílula flutuante não intrusiva do modo LOCKED
+      const lockedActionPill = document.getElementById('lockedActionPill');
+      const btnOpenBookDrawer = document.getElementById('btnOpenBookDrawer');
+      const pillStatusDot = document.getElementById('pillStatusDot');
+      const pillReadyTag = document.getElementById('pillReadyTag');
+      const btnPillNewDraw = document.getElementById('btnPillNewDraw');
 
       const toastBanner = document.getElementById('toastBanner');
       const toastText = document.getElementById('toastText');
 
+      // Ficha de Leitura Flutuante
+      const readingSheet = document.getElementById('readingSheet');
+      const sheetSourceTag = document.getElementById('sheetSourceTag');
+      const sheetLoadingState = document.getElementById('sheetLoadingState');
+      const sheetLoadingTitle = document.getElementById('sheetLoadingTitle');
+      const sheetLoadingSub = document.getElementById('sheetLoadingSub');
+      const sheetResultState = document.getElementById('sheetResultState');
+
+      const bookCoverImg = document.getElementById('bookCoverImg');
+      const bookCoverFallback = document.getElementById('bookCoverFallback');
+      const fallbackCoverTitle = document.getElementById('fallbackCoverTitle');
+      const fallbackCoverAuthor = document.getElementById('fallbackCoverAuthor');
+      const bookApiBadge = document.getElementById('bookApiBadge');
+      const bookMetaLine = document.getElementById('bookMetaLine');
+      const bookTitle = document.getElementById('bookTitle');
+      const bookSubtitle = document.getElementById('bookSubtitle');
+      const bookAuthor = document.getElementById('bookAuthor');
+      const bookPublisher = document.getElementById('bookPublisher');
+      const bookSynopsis = document.getElementById('bookSynopsis');
+      const btnToggleSynopsis = document.getElementById('btnToggleSynopsis');
+
+      const podcastSourceBadge = document.getElementById('podcastSourceBadge');
+      const podcastCardsContainer = document.getElementById('podcastCardsContainer');
+
+      const youtubeSourceBadge = document.getElementById('youtubeSourceBadge');
+      const youtubeCardsContainer = document.getElementById('youtubeCardsContainer');
+
+      const diagModeLabel = document.getElementById('diagModeLabel');
+      const diagConfidenceBadge = document.getElementById('diagConfidenceBadge');
+      const ocrCropPreviewImg = document.getElementById('ocrCropPreviewImg');
+      const ocrRawTextDisplay = document.getElementById('ocrRawTextDisplay');
+      const ocrEditInput = document.getElementById('ocrEditInput');
+      const btnRetrySearch = document.getElementById('btnRetrySearch');
+
+      const btnSheetRespin = document.getElementById('btnSheetRespin');
+      const btnSaveToSession = document.getElementById('btnSaveToSession');
+      const btnSaveLabel = document.getElementById('btnSaveLabel');
+      const btnCloseSheet = document.getElementById('btnCloseSheet');
+      const btnCloseSheetTop = document.getElementById('btnCloseSheetTop');
+
+      // Modal de Sessão
+      const sessionModal = document.getElementById('sessionModal');
+      const sessionListContainer = document.getElementById('sessionListContainer');
+      const btnCloseSessionModal = document.getElementById('btnCloseSessionModal');
+      const btnClearSession = document.getElementById('btnClearSession');
+      const btnCopySessionList = document.getElementById('btnCopySessionList');
+
       // ------------------------------------------------------------------------
-      // CANVAS OFFSCREEN PARA ANÁLISE DE VISÃO COMPUTACIONAL (160 x 120)
+      // CANVAS AUXILIARES (VISÃO COMPUTACIONAL E BIBLIOTECA VIRTUAL)
       // ------------------------------------------------------------------------
-      const PROC_W = 160;
-      const PROC_H = 120;
+      const PROC_W = 200;
+      const PROC_H = 150;
       const procCanvas = document.createElement('canvas');
       procCanvas.width = PROC_W;
       procCanvas.height = PROC_H;
       const procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
 
-      // ------------------------------------------------------------------------
-      // CANVAS OFFSCREEN PARA A ESTANTE VIRTUAL PROCEDURAL (MODO DEMO)
-      // ------------------------------------------------------------------------
-      const DEMO_W = 1280;
-      const DEMO_H = 720;
+      const DEMO_W = 1440;
+      const DEMO_H = 900;
       const demoCanvas = document.createElement('canvas');
       demoCanvas.width = DEMO_W;
       demoCanvas.height = DEMO_H;
       const demoCtx = demoCanvas.getContext('2d');
 
       // ------------------------------------------------------------------------
-      // ESTADO GLOBAL DA APLICAÇÃO
+      // CHAVES DE CACHE EM LOCALSTORAGE
+      // ------------------------------------------------------------------------
+      const CACHE_STORAGE_KEY = 'biblioteca_otica_books_cache_v2';
+      const SESSION_STORAGE_KEY = 'biblioteca_otica_session_list_v2';
+
+      // ------------------------------------------------------------------------
+      // ESTADO GLOBAL
       // ------------------------------------------------------------------------
       const AppState = {
-        mode: 'INIT',          // 'INIT' | 'SCANNING' | 'SPINNING' | 'LOCKED'
-        sourceType: 'NONE',    // 'NONE' | 'CAMERA' | 'DEMO'
+        mode: 'INIT',            // 'INIT' | 'SCANNING' | 'SPINNING' | 'LOCKED'
+        captureTarget: 'SPINE',  // 'SPINE' | 'COVER'
+        sourceType: 'NONE',      // 'NONE' | 'CAMERA' | 'DEMO'
         mediaStream: null,
-        sensitivity: 62,       // 15 a 95
+        sensitivity: 64,
         audioMuted: false,
         viewportW: window.innerWidth,
         viewportH: window.innerHeight,
         dpr: Math.min(window.devicePixelRatio || 1, 2),
 
-        // Lombadas rastreadas com suavização temporal
-        // Cada item: { id, x, y, w, h, targetX, targetY, targetW, targetH, confidence, ttl }
         trackedSpines: [],
         nextSpineId: 1,
 
-        // Estado da roleta seletora
         highlightedIndex: -1,
         lockedSpineId: null,
+        anchoredTarget: null,    // Coordenadas contínuas do exemplar selecionado (lombada ou capa)
+        isDrawerOpen: false,
         spinStep: 0,
-        spinTotalSteps: 26,
+        spinTotalSteps: 22,
         spinTimerId: null,
 
-        // Animação visual
         dimAlpha: 0,
         targetDimAlpha: 0,
-        scanLinePhase: 0,
-        dustParticles: [],
         lastFrameTime: performance.now(),
-        toastTimeout: null
+        toastTimeout: null,
+
+        // Estado do OCR e Livro Atual
+        ocrReady: false,
+        ocrWorker: null,
+        analysisRunId: 0,
+        currentBookData: null,
+        synopsisExpanded: false
       };
 
       // ------------------------------------------------------------------------
-      // SINTETIZADOR DE ÁUDIO PROCEDURAL (WEB AUDIO API)
+      // CÁLCULO DO QUADRO DE CAPTURA DE CAPA (2:3 CENTRALIZADO NO VISOR)
       // ------------------------------------------------------------------------
-      const SoundEngine = {
-        ctx: null,
+      function getCoverGuideNormalizedRect() {
+        const W = AppState.viewportW;
+        const H = AppState.viewportH;
+        const targetRatio = 2 / 3; // Proporção clássica de capa de livro
 
-        unlock() {
-          try {
-            if (!this.ctx) {
-              const AudioCtx = window.AudioContext || window.webkitAudioContext;
-              if (AudioCtx) {
-                this.ctx = new AudioCtx();
+        let boxH = Math.min(H * 0.56, 460);
+        let boxW = boxH * targetRatio;
+
+        if (boxW > W * 0.72) {
+          boxW = W * 0.72;
+          boxH = boxW / targetRatio;
+        }
+
+        const nx = (W - boxW) * 0.5 / W;
+        const ny = (H * 0.45 - boxH * 0.5) / H;
+        return {
+          id: 999,
+          x: Math.max(0.08, nx),
+          y: Math.max(0.12, ny),
+          w: Math.min(0.84, boxW / W),
+          h: Math.min(0.72, boxH / H)
+        };
+      }
+
+      // ------------------------------------------------------------------------
+      // RASTREADOR ÓTICO DE ÂNCORA FIXA (ZSAD + REFINAMENTO SUB-BLOCO E BORDAS)
+      // ------------------------------------------------------------------------
+      const OpticalAnchorTracker = {
+        active: false,
+        lockKind: 'SPINE', // 'SPINE' | 'COVER'
+        nx: 0,
+        ny: 0,
+        nw: 0,
+        nh: 0,
+        px: 0,
+        py: 0,
+        pw: 0,
+        ph: 0,
+        corePatch: null,
+        coreW: 0,
+        coreH: 0,
+        coreMean: 0,
+        contextPatch: null,
+        contextW: 0,
+        contextH: 0,
+        contextPadX: 0,
+        contextPadY: 0,
+        contextMean: 0,
+
+        reset() {
+          this.active = false;
+          this.corePatch = null;
+          this.contextPatch = null;
+        },
+
+        capture(box, lumaBuf, imgW, imgH, lockKind = 'SPINE') {
+          this.lockKind = lockKind;
+          const pw = Math.max(6, Math.round(box.w * imgW));
+          const ph = Math.max(18, Math.round(box.h * imgH));
+          const px = Math.max(1, Math.min(imgW - pw - 1, Math.round(box.x * imgW)));
+          const py = Math.max(1, Math.min(imgH - ph - 1, Math.round(box.y * imgH)));
+
+          this.nx = px / imgW;
+          this.ny = py / imgH;
+          this.nw = pw / imgW;
+          this.nh = ph / imgH;
+          this.px = px;
+          this.py = py;
+          this.pw = pw;
+          this.ph = ph;
+
+          this.coreW = pw;
+          this.coreH = ph;
+          this.corePatch = new Float32Array(pw * ph);
+          let coreSum = 0;
+          for (let y = 0; y < ph; y++) {
+            const rowOffset = (py + y) * imgW + px;
+            const dstOffset = y * pw;
+            for (let x = 0; x < pw; x++) {
+              const v = lumaBuf[rowOffset + x];
+              this.corePatch[dstOffset + x] = v;
+              coreSum += v;
+            }
+          }
+          this.coreMean = coreSum / (pw * ph);
+
+          const padFactorX = lockKind === 'COVER' ? 0.18 : 0.65;
+          const padX = Math.max(4, Math.round(pw * padFactorX));
+          const padY = Math.max(4, Math.round(ph * 0.08));
+          const cx0 = Math.max(0, px - padX);
+          const cy0 = Math.max(0, py - padY);
+          const cx1 = Math.min(imgW, px + pw + padX);
+          const cy1 = Math.min(imgH, py + ph + padY);
+
+          this.contextPadX = px - cx0;
+          this.contextPadY = py - cy0;
+          this.contextW = Math.max(8, cx1 - cx0);
+          this.contextH = Math.max(20, cy1 - cy0);
+          this.contextPatch = new Float32Array(this.contextW * this.contextH);
+
+          let ctxSum = 0;
+          for (let y = 0; y < this.contextH; y++) {
+            const rowOffset = (cy0 + y) * imgW + cx0;
+            const dstOffset = y * this.contextW;
+            for (let x = 0; x < this.contextW; x++) {
+              const v = lumaBuf[rowOffset + x];
+              this.contextPatch[dstOffset + x] = v;
+              ctxSum += v;
+            }
+          }
+          this.contextMean = ctxSum / (this.contextW * this.contextH);
+          this.active = true;
+        },
+
+        computeZSAD(lumaBuf, imgW, imgH, sx, sy, patch, patchW, patchH, patchMean, stride = 1) {
+          if (sx < 0 || sy < 0 || sx + patchW > imgW || sy + patchH > imgH) {
+            return Infinity;
+          }
+
+          let candSum = 0;
+          let samples = 0;
+          for (let y = 0; y < patchH; y += stride) {
+            const row = (sy + y) * imgW + sx;
+            for (let x = 0; x < patchW; x += stride) {
+              candSum += lumaBuf[row + x];
+              samples++;
+            }
+          }
+          if (samples === 0) return Infinity;
+          const candMean = candSum / samples;
+
+          let sad = 0;
+          for (let y = 0; y < patchH; y += stride) {
+            const imgRow = (sy + y) * imgW + sx;
+            const patRow = y * patchW;
+            for (let x = 0; x < patchW; x += stride) {
+              const diffCand = lumaBuf[imgRow + x] - candMean;
+              const diffPat = patch[patRow + x] - patchMean;
+              sad += Math.abs(diffCand - diffPat);
+            }
+          }
+
+          return sad / samples;
+        },
+
+        track(lumaBuf, vertProfile, imgW, imgH) {
+          if (!this.active || !this.contextPatch || !this.corePatch) return null;
+
+          const curCtxX = Math.round(this.px - this.contextPadX);
+          const curCtxY = Math.round(this.py - this.contextPadY);
+
+          const maxX = imgW - this.contextW;
+          const maxY = imgH - this.contextH;
+          if (maxX <= 1 || maxY <= 1) return this.getNormalizedBox();
+
+          const searchRadX = Math.round(imgW * 0.24);
+          const searchRadY = Math.round(imgH * 0.18);
+
+          const minX = Math.max(0, curCtxX - searchRadX);
+          const endX = Math.min(maxX, curCtxX + searchRadX);
+          const minY = Math.max(0, curCtxY - searchRadY);
+          const endY = Math.min(maxY, curCtxY + searchRadY);
+
+          const coarseStride = this.lockKind === 'COVER' ? 3 : 2;
+          let bestX = Math.max(minX, Math.min(endX, curCtxX));
+          let bestY = Math.max(minY, Math.min(endY, curCtxY));
+          let bestScore = Infinity;
+
+          for (let y = minY; y <= endY; y += 2) {
+            for (let x = minX; x <= endX; x += 2) {
+              const ctxScore = this.computeZSAD(
+                lumaBuf,
+                imgW,
+                imgH,
+                x,
+                y,
+                this.contextPatch,
+                this.contextW,
+                this.contextH,
+                this.contextMean,
+                coarseStride
+              );
+              const distPenalty = (Math.abs(x - curCtxX) + Math.abs(y - curCtxY)) * 0.04;
+              const total = ctxScore + distPenalty;
+              if (total < bestScore) {
+                bestScore = total;
+                bestX = x;
+                bestY = y;
               }
             }
-            if (this.ctx && this.ctx.state === 'suspended') {
-              this.ctx.resume();
-            }
-          } catch (e) {
-            // Ignora silenciosamente se bloqueado pelo navegador
           }
+
+          const fineMinX = Math.max(0, bestX - 2);
+          const fineMaxX = Math.min(maxX, bestX + 2);
+          const fineMinY = Math.max(0, bestY - 2);
+          const fineMaxY = Math.min(maxY, bestY + 2);
+
+          let fineBestX = bestX;
+          let fineBestY = bestY;
+          let fineBestScore = Infinity;
+          const scoreGrid = {};
+          const fineStride = this.lockKind === 'COVER' ? 2 : 1;
+
+          for (let y = fineMinY; y <= fineMaxY; y++) {
+            for (let x = fineMinX; x <= fineMaxX; x++) {
+              const ctxErr = this.computeZSAD(
+                lumaBuf,
+                imgW,
+                imgH,
+                x,
+                y,
+                this.contextPatch,
+                this.contextW,
+                this.contextH,
+                this.contextMean,
+                fineStride
+              );
+              const coreErr = this.computeZSAD(
+                lumaBuf,
+                imgW,
+                imgH,
+                x + this.contextPadX,
+                y + this.contextPadY,
+                this.corePatch,
+                this.coreW,
+                this.coreH,
+                this.coreMean,
+                fineStride
+              );
+              const combined = ctxErr * 0.45 + coreErr * 0.55;
+              scoreGrid[`${x},${y}`] = combined;
+
+              if (combined < fineBestScore) {
+                fineBestScore = combined;
+                fineBestX = x;
+                fineBestY = y;
+              }
+            }
+          }
+
+          let subOffsetX = 0;
+          const leftScore = scoreGrid[`${fineBestX - 1},${fineBestY}`];
+          const rightScore = scoreGrid[`${fineBestX + 1},${fineBestY}`];
+          if (typeof leftScore === 'number' && typeof rightScore === 'number') {
+            const denom = 2 * (leftScore - 2 * fineBestScore + rightScore);
+            if (Math.abs(denom) > 0.001) {
+              subOffsetX = Math.max(-0.5, Math.min(0.5, (leftScore - rightScore) / denom));
+            }
+          }
+
+          let subOffsetY = 0;
+          const topScore = scoreGrid[`${fineBestX},${fineBestY - 1}`];
+          const botScore = scoreGrid[`${fineBestX},${fineBestY + 1}`];
+          if (typeof topScore === 'number' && typeof botScore === 'number') {
+            const denom = 2 * (topScore - 2 * fineBestScore + botScore);
+            if (Math.abs(denom) > 0.001) {
+              subOffsetY = Math.max(-0.5, Math.min(0.5, (topScore - botScore) / denom));
+            }
+          }
+
+          let trackedLeft = fineBestX + this.contextPadX + subOffsetX;
+          let trackedTop = fineBestY + this.contextPadY + subOffsetY;
+          let trackedW = this.pw;
+          let trackedH = this.ph;
+
+          if (this.lockKind === 'SPINE') {
+            const approxLeft = Math.round(trackedLeft);
+            const approxRight = Math.round(trackedLeft + trackedW);
+            const snapRange = Math.max(3, Math.round(trackedW * 0.25));
+
+            let bestLeftEdge = approxLeft;
+            let maxLeftGradient = 0;
+            for (let x = Math.max(2, approxLeft - snapRange); x <= Math.min(imgW - 3, approxLeft + snapRange); x++) {
+              if (vertProfile[x] > maxLeftGradient) {
+                maxLeftGradient = vertProfile[x];
+                bestLeftEdge = x;
+              }
+            }
+
+            let bestRightEdge = approxRight;
+            let maxRightGradient = 0;
+            for (let x = Math.max(2, approxRight - snapRange); x <= Math.min(imgW - 3, approxRight + snapRange); x++) {
+              if (vertProfile[x] > maxRightGradient) {
+                maxRightGradient = vertProfile[x];
+                bestRightEdge = x;
+              }
+            }
+
+            const snappedW = bestRightEdge - bestLeftEdge;
+            if (
+              maxLeftGradient > 4.5 &&
+              maxRightGradient > 4.5 &&
+              snappedW >= 5 &&
+              snappedW >= this.coreW * 0.72 &&
+              snappedW <= this.coreW * 1.65
+            ) {
+              trackedLeft = bestLeftEdge;
+              trackedW = snappedW;
+              const scaleRatio = trackedW / Math.max(1, this.coreW);
+              trackedH = Math.min(imgH * 0.92, Math.max(20, this.coreH * (0.4 + 0.6 * scaleRatio)));
+              const centerY = trackedTop + this.ph * 0.5;
+              trackedTop = Math.max(2, Math.min(imgH - trackedH - 2, centerY - trackedH * 0.5));
+            }
+          }
+
+          const smooth = 0.42;
+          this.px += (trackedLeft - this.px) * smooth;
+          this.py += (trackedTop - this.py) * smooth;
+          this.pw += (trackedW - this.pw) * 0.28;
+          this.ph += (trackedH - this.ph) * 0.28;
+
+          this.nx = Math.max(0, Math.min(1 - this.pw / imgW, this.px / imgW));
+          this.ny = Math.max(0, Math.min(1 - this.ph / imgH, this.py / imgH));
+          this.nw = Math.min(1, this.pw / imgW);
+          this.nh = Math.min(1, this.ph / imgH);
+
+          return this.getNormalizedBox();
         },
 
-        // Estalo tátil suave quando a luz pula de um livro para outro
-        playHop(progress = 0) {
-          if (AppState.audioMuted || !this.ctx) return;
-          try {
-            const now = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-
-            // Frequência sobe levemente conforme a roleta desacelera
-            const freq = 360 + progress * 320;
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(freq, now);
-            osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
-
-            gain.gain.setValueAtTime(0.11, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-
-            osc.start(now);
-            osc.stop(now + 0.05);
-          } catch (e) {}
-        },
-
-        // Acorde harmônico quente quando a luz trava no livro escolhido
-        playLock() {
-          if (AppState.audioMuted || !this.ctx) return;
-          try {
-            const now = this.ctx.currentTime;
-            const notes = [523.25, 659.25, 783.99, 1046.50]; // Dó maior brilhante (C5, E5, G5, C6)
-
-            notes.forEach((freq, idx) => {
-              const osc = this.ctx.createOscillator();
-              const gain = this.ctx.createGain();
-
-              osc.type = idx === 0 ? 'sine' : 'triangle';
-              const startTime = now + idx * 0.045;
-              osc.frequency.setValueAtTime(freq, startTime);
-
-              gain.gain.setValueAtTime(0.001, startTime);
-              gain.gain.linearRampToValueAtTime(0.09 / (idx * 0.4 + 1), startTime + 0.03);
-              gain.gain.exponentialRampToValueAtTime(0.0008, startTime + 0.85);
-
-              osc.connect(gain);
-              gain.connect(this.ctx.destination);
-
-              osc.start(startTime);
-              osc.stop(startTime + 0.9);
-            });
-          } catch (e) {}
+        getNormalizedBox() {
+          return {
+            id: AppState.lockedSpineId || 0,
+            x: this.nx,
+            y: this.ny,
+            w: this.nw,
+            h: this.nh
+          };
         }
       };
 
       // ------------------------------------------------------------------------
-      // GERADOR DA ESTANTE VIRTUAL PROCEDURAL (MODO DEMO)
+      // MOTOR DE OCR LOCAL (TESSERACT.JS V5 — LOMBADAS E CAPAS)
+      // ------------------------------------------------------------------------
+      const OCREngine = {
+        async init() {
+          updateOcrStatus('loading', 'OCR: carregando');
+          try {
+            if (typeof Tesseract === 'undefined') {
+              throw new Error('Biblioteca Tesseract.js não carregada');
+            }
+            let worker;
+            try {
+              worker = await Tesseract.createWorker('por+eng', 1, { logger: () => {} });
+            } catch (e) {
+              worker = await Tesseract.createWorker('por', 1, { logger: () => {} });
+            }
+            AppState.ocrWorker = worker;
+            AppState.ocrReady = true;
+            updateOcrStatus('ready', 'OCR: por+eng pronto');
+          } catch (err) {
+            console.warn('Falha ao inicializar Tesseract:', err);
+            AppState.ocrReady = false;
+            updateOcrStatus('error', 'OCR: indisponível');
+          }
+        },
+
+        /**
+         * Leitura de Lombada Vertical: recorta, normaliza contraste e testa -90° e +90°.
+         */
+        async readSpine(spine) {
+          const cropCanvas = extractHighResCrop(spine, 0.06, 0.015);
+          const processedBase = preprocessForOCR(cropCanvas, 560, true);
+
+          const rotMinus90 = rotateCanvas90(processedBase, -90);
+          const rotPlus90 = rotateCanvas90(processedBase, 90);
+
+          if (!AppState.ocrReady || !AppState.ocrWorker) {
+            return {
+              rawText: '',
+              cleanedText: '',
+              confidence: 0,
+              orientation: 'LOMBADA -90°',
+              previewDataUrl: rotMinus90.toDataURL('image/png')
+            };
+          }
+
+          updateOcrStatus('busy', 'OCR: lendo lombada...');
+
+          try {
+            const [resMinus, resPlus] = await Promise.all([
+              AppState.ocrWorker.recognize(rotMinus90),
+              AppState.ocrWorker.recognize(rotPlus90)
+            ]);
+
+            const evalMinus = evaluateOcrCandidate(resMinus.data, 'LOMBADA -90°', rotMinus90);
+            const evalPlus = evaluateOcrCandidate(resPlus.data, 'LOMBADA +90°', rotPlus90);
+
+            const winner = evalPlus.score > evalMinus.score ? evalPlus : evalMinus;
+            updateOcrStatus('ready', 'OCR: pronto');
+            return winner;
+          } catch (err) {
+            updateOcrStatus('ready', 'OCR: pronto');
+            return {
+              rawText: '',
+              cleanedText: '',
+              confidence: 0,
+              orientation: 'LOMBADA -90°',
+              previewDataUrl: rotMinus90.toDataURL('image/png')
+            };
+          }
+        },
+
+        /**
+         * Leitura de Capa Frontal (0° horizontal): recorta o quadro 2:3,
+         * testa passagem de luminância normalizada e passagem invertida (para capas escuras).
+         */
+        async readCover(coverBox) {
+          const cropCanvas = extractHighResCrop(coverBox, 0.02, 0.02);
+          const normalPass = preprocessForOCR(cropCanvas, 680, false);
+          const adaptivePass = preprocessForOCR(cropCanvas, 680, true);
+
+          if (!AppState.ocrReady || !AppState.ocrWorker) {
+            return {
+              rawText: '',
+              cleanedText: '',
+              confidence: 0,
+              orientation: 'CAPA 0°',
+              previewDataUrl: normalPass.toDataURL('image/png')
+            };
+          }
+
+          updateOcrStatus('busy', 'OCR: lendo capa...');
+
+          try {
+            const resNormal = await AppState.ocrWorker.recognize(normalPass);
+            const evalNormal = evaluateOcrCandidate(resNormal.data, 'CAPA 0°', normalPass);
+
+            // Se a capa tiver fundo escuro e pouca confiança na passagem direta, avalia a passagem invertida
+            if (evalNormal.confidence < 62 || evalNormal.cleanedText.length < 5) {
+              const resAdapt = await AppState.ocrWorker.recognize(adaptivePass);
+              const evalAdapt = evaluateOcrCandidate(resAdapt.data, 'CAPA 0° (CONTRASTE)', adaptivePass);
+              updateOcrStatus('ready', 'OCR: pronto');
+              return evalAdapt.score > evalNormal.score ? evalAdapt : evalNormal;
+            }
+
+            updateOcrStatus('ready', 'OCR: pronto');
+            return evalNormal;
+          } catch (err) {
+            updateOcrStatus('ready', 'OCR: pronto');
+            return {
+              rawText: '',
+              cleanedText: '',
+              confidence: 0,
+              orientation: 'CAPA 0°',
+              previewDataUrl: normalPass.toDataURL('image/png')
+            };
+          }
+        }
+      };
+
+      function updateOcrStatus(state, label) {
+        ocrStatusLabel.textContent = label;
+        ocrStatusMobile.textContent = label;
+        if (state === 'ready') {
+          ocrStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-[#2D6A4F]';
+        } else if (state === 'busy') {
+          ocrStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-[#C83232] animate-ping';
+        } else if (state === 'error') {
+          ocrStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-red-600';
+        } else {
+          ocrStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-[#EAB308] animate-pulse';
+        }
+      }
+
+      function extractHighResCrop(normBox, padFactorX = 0.04, padFactorY = 0.015) {
+        let srcEl = null;
+        let srcW = 0;
+        let srcH = 0;
+
+        if (AppState.sourceType === 'CAMERA' && videoEl.readyState >= 2) {
+          srcEl = videoEl;
+          srcW = videoEl.videoWidth || 1280;
+          srcH = videoEl.videoHeight || 720;
+        } else {
+          srcEl = demoCanvas;
+          srcW = DEMO_W;
+          srcH = DEMO_H;
+        }
+
+        const viewAspect = AppState.viewportW / AppState.viewportH;
+        const srcAspect = srcW / srcH;
+
+        let coverX = 0;
+        let coverY = 0;
+        let coverW = srcW;
+        let coverH = srcH;
+
+        if (srcAspect > viewAspect) {
+          coverW = srcH * viewAspect;
+          coverX = (srcW - coverW) * 0.5;
+        } else {
+          coverH = srcW / viewAspect;
+          coverY = (srcH - coverH) * 0.5;
+        }
+
+        const padX = normBox.w * padFactorX;
+        const padY = normBox.h * padFactorY;
+        const nx = Math.max(0, normBox.x - padX);
+        const ny = Math.max(0, normBox.y - padY);
+        const nw = Math.min(1 - nx, normBox.w + padX * 2);
+        const nh = Math.min(1 - ny, normBox.h + padY * 2);
+
+        const sx = Math.floor(coverX + nx * coverW);
+        const sy = Math.floor(coverY + ny * coverH);
+        const sw = Math.max(20, Math.floor(nw * coverW));
+        const sh = Math.max(32, Math.floor(nh * coverH));
+
+        const out = document.createElement('canvas');
+        out.width = sw;
+        out.height = sh;
+        const oCtx = out.getContext('2d');
+        oCtx.drawImage(srcEl, sx, sy, sw, sh, 0, 0, sw, sh);
+        return out;
+      }
+
+      function preprocessForOCR(srcCanvas, targetMaxDim = 560, autoInvertDark = true) {
+        const scale = Math.max(1, Math.min(3, targetMaxDim / Math.max(srcCanvas.width, srcCanvas.height)));
+        const w = Math.round(srcCanvas.width * scale);
+        const h = Math.round(srcCanvas.height * scale);
+
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const cCtx = c.getContext('2d');
+        cCtx.imageSmoothingEnabled = true;
+        cCtx.imageSmoothingQuality = 'high';
+        cCtx.drawImage(srcCanvas, 0, 0, w, h);
+
+        const imgData = cCtx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+        const totalPixels = w * h;
+        const gray = new Uint8Array(totalPixels);
+
+        let minL = 255;
+        let maxL = 0;
+        let sumL = 0;
+
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          const l = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+          gray[p] = l;
+          sumL += l;
+          if (l < minL) minL = l;
+          if (l > maxL) maxL = l;
+        }
+
+        const meanL = sumL / Math.max(1, totalPixels);
+        const isDarkBackground = autoInvertDark && meanL < 118;
+        const range = Math.max(24, maxL - minL);
+
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+          let norm = ((gray[p] - minL) / range) * 255;
+          norm = norm < 128 ? (norm * norm) / 128 : 255 - ((255 - norm) * (255 - norm)) / 128;
+          if (isDarkBackground) {
+            norm = 255 - norm;
+          }
+          const finalVal = Math.max(0, Math.min(255, Math.round(norm)));
+          data[i] = finalVal;
+          data[i + 1] = finalVal;
+          data[i + 2] = finalVal;
+          data[i + 3] = 255;
+        }
+
+        cCtx.putImageData(imgData, 0, 0);
+        return c;
+      }
+
+      function rotateCanvas90(srcCanvas, angleDeg) {
+        const pad = 18;
+        const out = document.createElement('canvas');
+        out.width = srcCanvas.height + pad * 2;
+        out.height = srcCanvas.width + pad * 2;
+        const rCtx = out.getContext('2d');
+
+        rCtx.fillStyle = '#FFFFFF';
+        rCtx.fillRect(0, 0, out.width, out.height);
+
+        rCtx.save();
+        rCtx.translate(out.width * 0.5, out.height * 0.5);
+        rCtx.rotate((angleDeg * Math.PI) / 180);
+        rCtx.drawImage(srcCanvas, -srcCanvas.width * 0.5, -srcCanvas.height * 0.5);
+        rCtx.restore();
+
+        return out;
+      }
+
+      function evaluateOcrCandidate(data, orientationLabel, previewCanvas) {
+        const rawText = (data && data.text ? data.text : '').replace(/\s+/g, ' ').trim();
+        const confidence = data && typeof data.confidence === 'number' ? Math.max(0, Math.round(data.confidence)) : 0;
+        const cleanedText = cleanOcrQueryText(rawText);
+
+        const words = cleanedText.split(' ').filter((w) => w.length >= 3);
+        const letterCount = (cleanedText.match(/[A-Za-zÀ-ÿ]/g) || []).length;
+        const score = confidence * 0.65 + words.length * 14 + Math.min(35, letterCount * 1.1);
+
+        return {
+          rawText,
+          cleanedText,
+          confidence,
+          orientation: orientationLabel,
+          score,
+          previewDataUrl: previewCanvas.toDataURL('image/png')
+        };
+      }
+
+      function cleanOcrQueryText(text) {
+        if (!text) return '';
+        return text
+          .replace(/[|_~`^*=+<>[\]{}\\]/g, ' ')
+          .replace(/\s-\s/g, ' ')
+          .replace(/[^A-Za-zÀ-ÿ0-9'’\-.,: ]+/g, ' ')
+          .replace(/\b[A-Za-z0-9]\b/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      // ------------------------------------------------------------------------
+      // PESQUISA BIBLIOGRÁFICA NA WEB (GOOGLE BOOKS + OPEN LIBRARY + CACHE)
+      // ------------------------------------------------------------------------
+      const BookSearchService = {
+        getCache() {
+          try {
+            return JSON.parse(localStorage.getItem(CACHE_STORAGE_KEY) || '{}');
+          } catch (e) {
+            return {};
+          }
+        },
+
+        setCache(key, value) {
+          try {
+            const cache = this.getCache();
+            cache[key.toLowerCase()] = { timestamp: Date.now(), data: value };
+            localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(cache));
+          } catch (e) {}
+        },
+
+        async searchBook(query) {
+          const cleanQuery = cleanOcrQueryText(query);
+          if (!cleanQuery || cleanQuery.length < 2) {
+            return null;
+          }
+
+          const cache = this.getCache();
+          const cachedEntry = cache[cleanQuery.toLowerCase()];
+          if (cachedEntry && cachedEntry.data) {
+            return { ...cachedEntry.data, sourceApi: `${cachedEntry.data.sourceApi} • CACHE` };
+          }
+
+          let result = await this.queryGoogleBooks(cleanQuery, true);
+          if (!result) {
+            result = await this.queryGoogleBooks(cleanQuery, false);
+          }
+
+          if (!result) {
+            result = await this.queryOpenLibrary(cleanQuery);
+          }
+
+          if (result) {
+            this.setCache(cleanQuery, result);
+          }
+
+          return result;
+        },
+
+        async queryGoogleBooks(query, restrictPt) {
+          try {
+            const langParam = restrictPt ? '&langRestrict=pt' : '';
+            const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3${langParam}`;
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+
+            const json = await resp.json();
+            if (!json.items || json.items.length === 0) return null;
+
+            const bestItem =
+              json.items.find((it) => it.volumeInfo && it.volumeInfo.description && it.volumeInfo.imageLinks) ||
+              json.items.find((it) => it.volumeInfo && (it.volumeInfo.description || it.volumeInfo.imageLinks)) ||
+              json.items[0];
+
+            const info = bestItem.volumeInfo || {};
+            let coverUrl = '';
+            if (info.imageLinks) {
+              coverUrl = (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || '').replace(/^http:/, 'https:');
+            }
+
+            return {
+              id: bestItem.id || `gb_${Date.now()}`,
+              title: info.title || query,
+              subtitle: info.subtitle || '',
+              authors: Array.isArray(info.authors) ? info.authors.join(', ') : 'Autoria não informada',
+              publisher: info.publisher || 'Editora não informada',
+              publishedDate: info.publishedDate ? info.publishedDate.slice(0, 4) : '',
+              pageCount: info.pageCount || null,
+              description: info.description || '',
+              coverUrl,
+              sourceApi: 'GOOGLE BOOKS'
+            };
+          } catch (e) {
+            return null;
+          }
+        },
+
+        async queryOpenLibrary(query) {
+          try {
+            const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=3`;
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+
+            const json = await resp.json();
+            if (!json.docs || json.docs.length === 0) return null;
+
+            const doc = json.docs[0];
+            const coverUrl = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '';
+            let description = '';
+
+            if (doc.key) {
+              try {
+                const workResp = await fetch(`https://openlibrary.org${doc.key}.json`);
+                if (workResp.ok) {
+                  const workJson = await workResp.json();
+                  if (typeof workJson.description === 'string') {
+                    description = workJson.description;
+                  } else if (workJson.description && workJson.description.value) {
+                    description = workJson.description.value;
+                  }
+                }
+              } catch (e) {}
+            }
+
+            if (!description && Array.isArray(doc.first_sentence) && doc.first_sentence.length > 0) {
+              description = `Trecho inicial: "${doc.first_sentence[0]}"`;
+            }
+
+            return {
+              id: doc.key || `ol_${Date.now()}`,
+              title: doc.title || query,
+              subtitle: doc.subtitle || '',
+              authors: Array.isArray(doc.author_name) ? doc.author_name.join(', ') : 'Autoria não informada',
+              publisher: Array.isArray(doc.publisher) ? doc.publisher[0] : 'Open Library',
+              publishedDate: doc.first_publish_year ? String(doc.first_publish_year) : '',
+              pageCount: doc.number_of_pages_median || null,
+              description,
+              coverUrl,
+              sourceApi: 'OPEN LIBRARY'
+            };
+          } catch (e) {
+            return null;
+          }
+        }
+      };
+
+      // ------------------------------------------------------------------------
+      // SERVIÇO DE PODCASTS SOBRE O LIVRO (ITUNES / APPLE PODCASTS API + FALLBACK)
+      // ------------------------------------------------------------------------
+      const PodcastSearchService = {
+        async searchPodcasts(title, author) {
+          const cleanTitle = (title || '').trim();
+          const cleanAuthor =
+            author && !author.includes('não informada') && !author.includes('inconclusiva') ? author.trim() : '';
+
+          if (!cleanTitle || cleanTitle.startsWith('Nenhum registro') || cleanTitle === 'Tipografia não identificada') {
+            return { mode: 'FALLBACK', items: this.buildEditorialPodcastRoutes('', '') };
+          }
+
+          // 1. Busca episódios específicos em português (country=BR)
+          const primaryQuery = `${cleanTitle} ${cleanAuthor}`.trim();
+          let episodes = await this.fetchItunesEpisodes(primaryQuery, 'BR');
+
+          // 2. Se não houver episódios no BR, busca apenas pelo título globalmente
+          if (!episodes || episodes.length === 0) {
+            episodes = await this.fetchItunesEpisodes(cleanTitle, 'US');
+          }
+
+          if (episodes && episodes.length > 0) {
+            return { mode: 'LIVE', items: episodes.slice(0, 3) };
+          }
+
+          return {
+            mode: 'FALLBACK',
+            items: this.buildEditorialPodcastRoutes(cleanTitle, cleanAuthor)
+          };
+        },
+
+        async fetchItunesEpisodes(term, country) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 3500);
+          try {
+            const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=podcast&entity=podcastEpisode&country=${country}&limit=4`;
+            const resp = await fetch(url, { signal: controller.signal });
+            if (!resp.ok) return [];
+            const json = await resp.json();
+            if (!json.results || !Array.isArray(json.results)) return [];
+
+            return json.results
+              .filter((ep) => ep && ep.trackName && ep.trackViewUrl)
+              .map((ep) => {
+                const mins = ep.trackTimeMillis ? Math.max(1, Math.round(ep.trackTimeMillis / 60000)) : null;
+                return {
+                  title: ep.trackName,
+                  showName: ep.collectionName || 'Podcast Literário',
+                  artwork: (ep.artworkUrl160 || ep.artworkUrl60 || '').replace(/^http:/, 'https:'),
+                  durationLabel: mins ? `${mins} min` : 'EPISÓDIO',
+                  url: ep.trackViewUrl
+                };
+              });
+          } catch (e) {
+            return [];
+          } finally {
+            clearTimeout(timer);
+          }
+        },
+
+        buildEditorialPodcastRoutes(title, author) {
+          const subject = title || 'literatura brasileira contemporânea';
+          const queryMain = `${subject} ${author} livro`.trim();
+          return [
+            {
+              tag: 'SPOTIFY PODCASTS',
+              title: title ? `Episódios sobre "${title}"` : 'Episódios literários no Spotify',
+              subtitle: 'Debates, clubes de leitura e entrevistas em áudio',
+              url: `https://open.spotify.com/search/${encodeURIComponent(queryMain)}/episodes`
+            },
+            {
+              tag: 'APPLE PODCASTS',
+              title: author ? `Conversas sobre ${author}` : 'Crítica literária em podcast',
+              subtitle: 'Explorar programas de literatura e resenhas faladas',
+              url: `https://podcasts.apple.com/br/search?term=${encodeURIComponent(queryMain)}`
+            },
+            {
+              tag: 'YOUTUBE PODCASTS',
+              title: 'Mesas e videocasts literários',
+              subtitle: title ? `Bate-papos completos sobre "${title}"` : 'Ouvir rodas de conversa literárias',
+              url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${queryMain} podcast`.trim())}`
+            }
+          ];
+        }
+      };
+
+      // ------------------------------------------------------------------------
+      // SERVIÇO DE DICAS DE VÍDEOS NO YOUTUBE (SEM CHAVE DE API + FALLBACK)
+      // ------------------------------------------------------------------------
+      const YouTubeSearchService = {
+        async searchVideos(title, author) {
+          const cleanTitle = (title || '').trim();
+          const cleanAuthor =
+            author && !author.includes('não informada') && !author.includes('inconclusiva') ? author.trim() : '';
+
+          if (!cleanTitle || cleanTitle.startsWith('Nenhum registro') || cleanTitle === 'Tipografia não identificada') {
+            return { mode: 'FALLBACK', items: this.buildEditorialSuggestions('', '') };
+          }
+
+          const query = `${cleanTitle} ${cleanAuthor} livro resenha`.trim();
+          const encoded = encodeURIComponent(query);
+
+          const endpoints = [
+            { type: 'piped', url: `https://pipedapi.kavin.rocks/search?q=${encoded}&filter=videos` },
+            { type: 'piped', url: `https://pipedapi.adminforge.de/search?q=${encoded}&filter=videos` },
+            { type: 'invidious', url: `https://inv.nadeko.net/api/v1/search?q=${encoded}&type=video` },
+            { type: 'invidious', url: `https://invidious.nerdvpn.de/api/v1/search?q=${encoded}&type=video` }
+          ];
+
+          const fetchFromInstance = async (ep) => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 3000);
+            try {
+              const resp = await fetch(ep.url, { signal: controller.signal });
+              if (!resp.ok) throw new Error('HTTP error');
+              const data = await resp.json();
+              const parsed = this.normalizeResponse(ep.type, data);
+              if (!parsed || parsed.length === 0) throw new Error('Empty results');
+              return parsed.slice(0, 3);
+            } finally {
+              clearTimeout(timer);
+            }
+          };
+
+          try {
+            const videos = await Promise.any(endpoints.map((ep) => fetchFromInstance(ep)));
+            return { mode: 'LIVE', items: videos };
+          } catch (err) {
+            return {
+              mode: 'FALLBACK',
+              items: this.buildEditorialSuggestions(cleanTitle, cleanAuthor)
+            };
+          }
+        },
+
+        normalizeResponse(type, data) {
+          if (type === 'piped' && data && Array.isArray(data.items)) {
+            return data.items
+              .filter((item) => item && item.url && item.title)
+              .map((item) => {
+                const match = String(item.url).match(/v=([a-zA-Z0-9_-]{11})/);
+                const videoId = match ? match[1] : '';
+                if (!videoId) return null;
+                return {
+                  videoId,
+                  title: item.title,
+                  channel: item.uploaderName || 'YouTube',
+                  thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+                  url: `https://www.youtube.com/watch?v=${videoId}`
+                };
+              })
+              .filter(Boolean);
+          }
+
+          if (type === 'invidious' && Array.isArray(data)) {
+            return data
+              .filter((item) => item && item.videoId && item.title)
+              .map((item) => ({
+                videoId: item.videoId,
+                title: item.title,
+                channel: item.author || 'YouTube',
+                thumbnail: `https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`,
+                url: `https://www.youtube.com/watch?v=${item.videoId}`
+              }));
+          }
+
+          return [];
+        },
+
+        buildEditorialSuggestions(title, author) {
+          const baseSubject = title || 'literatura contemporânea';
+          const authorLabel = author || 'do autor';
+
+          return [
+            {
+              tag: 'LEITURA CRÍTICA',
+              title: 'Resenha e leitura crítica',
+              subtitle: title ? `Análises sobre "${title}"` : 'Pesquisar resenhas literárias',
+              url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${baseSubject} ${author} resenha leitura crítica`.trim())}`
+            },
+            {
+              tag: 'VOZ AUTORAL',
+              title: author ? `Entrevista e falas de ${author}` : 'Entrevista e contexto da obra',
+              subtitle: author ? `Conversas e conferências com ${authorLabel}` : 'Encontrar entrevistas sobre o livro',
+              url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${author || baseSubject} entrevista literatura`.trim())}`
+            },
+            {
+              tag: 'RODA DE LEITURA',
+              title: 'Clube de leitura e análise da obra',
+              subtitle: title ? `Discussões e guias de leitura de "${title}"` : 'Explorar clubes de leitura',
+              url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${baseSubject} clube de leitura análise`.trim())}`
+            }
+          ];
+        }
+      };
+
+      // ------------------------------------------------------------------------
+      // BIBLIOTECA VIRTUAL (DEMO) — INSPIRADA NA ARQUITETURA REAL DA BIBLIOTECA
       // ------------------------------------------------------------------------
       const DemoShelf = {
         books: [],
+        activeCoverIndex: 0,
 
         init() {
-          const palette = [
-            { bg: '#7f1d1d', band: '#fbbf24', text: '#fef3c7' }, // Vinho clássico
-            { bg: '#1e3a5f', band: '#e2e8f0', text: '#f8fafc' }, // Azul marinho
-            { bg: '#14532d', band: '#fcd34d', text: '#ecfdf5' }, // Verde biblioteca
-            { bg: '#d97706', band: '#1e293b', text: '#fffbeb' }, // Mostarda editorial
-            { bg: '#e7e5e4', band: '#dc2626', text: '#1c1917' }, // Creme literário
-            { bg: '#312e81', band: '#38bdf8', text: '#eef2ff' }, // Índigo
-            { bg: '#881337', band: '#fda4af', text: '#fff1f2' }, // Bordô
-            { bg: '#27272a', band: '#fbbf24', text: '#f4f4f5' }, // Grafite
-            { bg: '#9a3412', band: '#fed7aa', text: '#fff7ed' }, // Terracota
-            { bg: '#0f766e', band: '#ccfbf1', text: '#f0fdfa' }  // Verde petróleo
+          const catalog = [
+            {
+              title: 'O Avesso da Pele',
+              author: 'Jeferson Tenório',
+              bg: '#F6F4EF',
+              fg: '#18181B',
+              accent: '#C83232',
+              width: 78,
+              height: 515,
+              rotate: -90,
+              tagline: 'PRÊMIO JABUTI • ROMANCE'
+            },
+            {
+              title: 'Torto Arado',
+              author: 'Itamar Vieira Junior',
+              bg: '#C83232',
+              fg: '#F6F4EF',
+              accent: '#EAB308',
+              width: 82,
+              height: 525,
+              rotate: -90,
+              tagline: 'FICÇÃO BRASILEIRA CONTEMPORÂNEA'
+            },
+            {
+              title: 'Quarto de Despejo',
+              author: 'Carolina Maria de Jesus',
+              bg: '#1E1D1B',
+              fg: '#F6F4EF',
+              accent: '#EAB308',
+              width: 76,
+              height: 500,
+              rotate: 90,
+              tagline: 'DIÁRIO DE UMA FAVELADA'
+            },
+            {
+              title: 'Ponciá Vicêncio',
+              author: 'Conceição Evaristo',
+              bg: '#2B547E',
+              fg: '#F6F4EF',
+              accent: '#D4746A',
+              width: 72,
+              height: 492,
+              rotate: -90,
+              tagline: 'MEMÓRIA E ESCREVIVÊNCIA'
+            },
+            {
+              title: 'Água Viva',
+              author: 'Clarice Lispector',
+              bg: '#FAF8F3',
+              fg: '#18181B',
+              accent: '#2D6A4F',
+              width: 66,
+              height: 478,
+              rotate: -90,
+              tagline: 'LITERATURA BRASILEIRA'
+            },
+            {
+              title: 'Pequeno Manual Antirracista',
+              author: 'Djamila Ribeiro',
+              bg: '#EAB308',
+              fg: '#18181B',
+              accent: '#18181B',
+              width: 74,
+              height: 496,
+              rotate: -90,
+              tagline: 'ENSAIO E SOCIEDADE'
+            }
           ];
 
-          this.books = [];
-          let cursorX = -60;
-          let idx = 0;
+          const gap = 6;
+          const totalW = catalog.reduce((acc, b) => acc + b.width + gap, -gap);
+          let cursorX = Math.round((DEMO_W - totalW) * 0.5);
 
-          // Gera uma fileira contínua de livros com larguras e alturas variadas
-          while (cursorX < DEMO_W + 240) {
-            const width = 46 + ((idx * 19 + 11) % 44);      // 46px a 90px
-            const height = 340 + ((idx * 37 + 17) % 105);   // 340px a 445px
-            const style = palette[idx % palette.length];
-            const hasTopBand = idx % 2 === 0;
-            const hasBottomBadge = idx % 3 !== 0;
-            const spineLines = 1 + (idx % 2);
+          this.books = catalog.map((item) => {
+            const book = { ...item, x: cursorX };
+            cursorX += item.width + gap;
+            return book;
+          });
+        },
 
-            this.books.push({
-              x: cursorX,
-              w: width,
-              h: height,
-              style,
-              hasTopBand,
-              hasBottomBadge,
-              spineLines,
-              seed: idx
-            });
+        nextCover() {
+          this.activeCoverIndex = (this.activeCoverIndex + 1) % this.books.length;
+          updateDemoCoverCounter();
+        },
 
-            cursorX += width + 2; // Pequena fresta de sombra entre livros
-            idx++;
-          }
+        prevCover() {
+          this.activeCoverIndex = (this.activeCoverIndex - 1 + this.books.length) % this.books.length;
+          updateDemoCoverCounter();
         },
 
         render(timeMs) {
-          const t = timeMs * 0.001;
-          // Suave movimento lateral simulando a mão segurando o celular diante da estante
-          const swayX = Math.sin(t * 0.55) * 38;
-          const swayY = Math.cos(t * 0.8) * 5;
+          if (AppState.captureTarget === 'COVER') {
+            this.renderCoverTable(timeMs);
+          } else {
+            this.renderColorBlockedShelves(timeMs);
+          }
+        },
 
-          // Fundo escuro da estante de madeira
-          const bgGrad = demoCtx.createLinearGradient(0, 0, 0, DEMO_H);
-          bgGrad.addColorStop(0, '#16110e');
-          bgGrad.addColorStop(0.75, '#231914');
-          bgGrad.addColorStop(1, '#120d0a');
-          demoCtx.fillStyle = bgGrad;
+        /**
+         * Cenário 1: Estantes coloridas (amarela, vermelha, verde), treliças de madeira no teto
+         * e luminárias pendentes amarelas inspiradas nas fotos da biblioteca.
+         */
+        renderColorBlockedShelves(timeMs) {
+          const t = timeMs * 0.001;
+          const swayX = Math.sin(t * 0.65) * 24 + Math.sin(t * 1.45) * 5;
+          const swayY = Math.cos(t * 0.8) * 5;
+          const zoomBreath = 1 + Math.sin(t * 0.42) * 0.03;
+
+          // Parede superior neutra com faixa mural colorida
+          demoCtx.fillStyle = '#F2EFE9';
           demoCtx.fillRect(0, 0, DEMO_W, DEMO_H);
 
-          const shelfBaseY = 585 + swayY;
+          demoCtx.save();
+          demoCtx.translate(DEMO_W * 0.5, DEMO_H * 0.52);
+          demoCtx.scale(zoomBreath, zoomBreath);
+          demoCtx.translate(-DEMO_W * 0.5, -DEMO_H * 0.52);
 
-          // Desenha cada livro
+          // Blocos do mural geométrico no topo (Azul, Amarelo, Verde)
+          demoCtx.fillStyle = 'rgba(43, 84, 126, 0.22)';
+          demoCtx.fillRect(60, 20, 340, 120);
+          demoCtx.fillStyle = 'rgba(234, 179, 8, 0.28)';
+          demoCtx.fillRect(420, 20, 360, 120);
+          demoCtx.fillStyle = 'rgba(45, 106, 79, 0.22)';
+          demoCtx.fillRect(800, 20, 580, 120);
+
+          // Treliças de madeira no teto (wooden baffles)
+          demoCtx.fillStyle = 'rgba(164, 113, 72, 0.35)';
+          for (let gx = 120; gx < DEMO_W; gx += 180) {
+            demoCtx.fillRect(gx, 10, 90, 10);
+            demoCtx.fillRect(gx + 40, 0, 10, 36);
+          }
+
+          // Módulos coloridos das estantes ao fundo (Amarelo à esquerda, Vermelho ao centro, Verde à direita)
+          const shelfTopY = 165 + swayY;
+          const shelfBaseY = 735 + swayY;
+          const shelfH = shelfBaseY - shelfTopY;
+
+          demoCtx.fillStyle = 'rgba(234, 179, 8, 0.34)'; // Módulo Amarelo
+          demoCtx.fillRect(140 + swayX * 0.6, shelfTopY, 310, shelfH);
+
+          demoCtx.fillStyle = 'rgba(200, 50, 50, 0.30)'; // Módulo Vermelho
+          demoCtx.fillRect(458 + swayX * 0.6, shelfTopY, 524, shelfH);
+
+          demoCtx.fillStyle = 'rgba(45, 106, 79, 0.30)'; // Módulo Verde
+          demoCtx.fillRect(990 + swayX * 0.6, shelfTopY, 310, shelfH);
+
+          // Luminárias pendentes amarelas
+          const lampPositions = [390, 720, 1050];
+          lampPositions.forEach((lx) => {
+            const px = lx + swayX * 0.7;
+            demoCtx.strokeStyle = 'rgba(24, 24, 27, 0.35)';
+            demoCtx.lineWidth = 2;
+            demoCtx.beginPath();
+            demoCtx.moveTo(px, 0);
+            demoCtx.lineTo(px, 118);
+            demoCtx.stroke();
+
+            demoCtx.fillStyle = '#EAB308';
+            demoCtx.beginPath();
+            demoCtx.moveTo(px - 24, 148);
+            demoCtx.lineTo(px - 14, 118);
+            demoCtx.lineTo(px + 14, 118);
+            demoCtx.lineTo(px + 24, 148);
+            demoCtx.closePath();
+            demoCtx.fill();
+          });
+
+          // Lombadas verticais dos livros
           for (let i = 0; i < this.books.length; i++) {
             const b = this.books[i];
             const bx = b.x + swayX;
-            const by = shelfBaseY - b.h;
+            const by = shelfBaseY - b.height;
 
-            if (bx + b.w < -20 || bx > DEMO_W + 20) continue;
+            demoCtx.fillStyle = 'rgba(24, 24, 27, 0.32)';
+            demoCtx.fillRect(bx - 2, by + 2, b.width + 4, b.height);
 
-            // Sombra lateral profunda para criar borda vertical nítida entre lombadas
-            demoCtx.fillStyle = '#070504';
-            demoCtx.fillRect(bx - 2, by + 2, b.w + 4, b.h);
+            demoCtx.fillStyle = b.bg;
+            demoCtx.fillRect(bx, by, b.width, b.height);
 
-            // Corpo cilíndrico da lombada com iluminação 3D realista
-            const spineGrad = demoCtx.createLinearGradient(bx, by, bx + b.w, by);
-            spineGrad.addColorStop(0, 'rgba(0,0,0,0.42)');
-            spineGrad.addColorStop(0.18, b.style.bg);
-            spineGrad.addColorStop(0.5, b.style.bg);
-            spineGrad.addColorStop(0.85, b.style.bg);
-            spineGrad.addColorStop(1, 'rgba(0,0,0,0.48)');
+            const cylGrad = demoCtx.createLinearGradient(bx, by, bx + b.width, by);
+            cylGrad.addColorStop(0, 'rgba(0, 0, 0, 0.14)');
+            cylGrad.addColorStop(0.18, 'rgba(255, 255, 255, 0.10)');
+            cylGrad.addColorStop(0.84, 'rgba(0, 0, 0, 0.04)');
+            cylGrad.addColorStop(1, 'rgba(0, 0, 0, 0.18)');
+            demoCtx.fillStyle = cylGrad;
+            demoCtx.fillRect(bx, by, b.width, b.height);
 
-            demoCtx.fillStyle = b.style.bg;
-            demoCtx.fillRect(bx, by, b.w, b.h);
+            demoCtx.fillStyle = b.accent;
+            demoCtx.fillRect(bx + 4, by + 18, b.width - 8, 5);
+            demoCtx.fillRect(bx + 10, shelfBaseY - 34, b.width - 20, 16);
 
-            demoCtx.fillStyle = spineGrad;
-            demoCtx.fillRect(bx, by, b.w, b.h);
+            demoCtx.save();
+            const centerX = bx + b.width * 0.5;
+            const textCenterY = by + b.height * 0.49;
+            demoCtx.translate(centerX, textCenterY);
+            demoCtx.rotate((b.rotate * Math.PI) / 180);
 
-            // Reflexo especular vertical sutil no centro da lombada
-            demoCtx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-            demoCtx.fillRect(bx + b.w * 0.28, by, b.w * 0.16, b.h);
+            demoCtx.fillStyle = b.fg;
+            demoCtx.textAlign = 'center';
+            demoCtx.textBaseline = 'middle';
 
-            // Faixas decorativas superiores e inferiores
-            if (b.hasTopBand) {
-              demoCtx.fillStyle = b.style.band;
-              demoCtx.fillRect(bx + 3, by + 24, b.w - 6, 8);
-              demoCtx.fillRect(bx + 3, by + 37, b.w - 6, 3);
-            }
+            demoCtx.font = '700 17px "Plus Jakarta Sans", sans-serif';
+            demoCtx.fillText(b.title.toUpperCase(), 0, -9);
 
-            if (b.hasBottomBadge) {
-              demoCtx.fillStyle = b.style.band;
-              demoCtx.fillRect(bx + 6, shelfBaseY - 46, b.w - 12, 22);
-              demoCtx.fillStyle = b.style.bg;
-              demoCtx.fillRect(bx + 10, shelfBaseY - 38, b.w - 20, 6);
-            }
-
-            // Simulação de tipografia vertical na lombada
-            demoCtx.fillStyle = b.style.text;
-            demoCtx.globalAlpha = 0.78;
-            const titleTop = by + 68;
-            const titleHeight = b.h - 140;
-            if (b.spineLines === 1) {
-              demoCtx.fillRect(bx + b.w * 0.44, titleTop, Math.max(4, b.w * 0.12), titleHeight * 0.75);
-            } else {
-              demoCtx.fillRect(bx + b.w * 0.34, titleTop, 4, titleHeight * 0.8);
-              demoCtx.fillRect(bx + b.w * 0.56, titleTop + 14, 4, titleHeight * 0.65);
-            }
-            demoCtx.globalAlpha = 1;
-
-            // Borda superior clara do corte das páginas/capa
-            demoCtx.fillStyle = 'rgba(255,255,255,0.22)';
-            demoCtx.fillRect(bx + 1, by, b.w - 2, 3);
+            demoCtx.font = '500 13px "Plus Jakarta Sans", sans-serif';
+            demoCtx.globalAlpha = 0.85;
+            demoCtx.fillText(b.author, 0, 11);
+            demoCtx.restore();
           }
 
-          // Prateleira de madeira maciça abaixo dos livros
-          const woodGrad = demoCtx.createLinearGradient(0, shelfBaseY, 0, shelfBaseY + 46);
-          woodGrad.addColorStop(0, '#5c3a21');
-          woodGrad.addColorStop(0.25, '#452a17');
-          woodGrad.addColorStop(1, '#26160b');
-          demoCtx.fillStyle = woodGrad;
-          demoCtx.fillRect(0, shelfBaseY, DEMO_W, 46);
+          // Base da prateleira
+          demoCtx.fillStyle = '#F6F4EF';
+          demoCtx.fillRect(-100, shelfBaseY, DEMO_W + 200, 26);
+          demoCtx.fillStyle = 'rgba(24, 24, 27, 0.22)';
+          demoCtx.fillRect(-100, shelfBaseY, DEMO_W + 200, 2);
 
-          // Filete de luz na quina da prateleira
-          demoCtx.fillStyle = 'rgba(255, 220, 180, 0.22)';
-          demoCtx.fillRect(0, shelfBaseY, DEMO_W, 2);
+          demoCtx.restore();
+        },
+
+        /**
+         * Cenário 2 (Modo Ler Capa): Simula um livro exposto de frente sobre
+         * a mesa redonda vermelha / expositor da biblioteca para teste de OCR de capa.
+         */
+        renderCoverTable(timeMs) {
+          const t = timeMs * 0.001;
+          const swayX = Math.sin(t * 0.7) * 8;
+          const swayY = Math.cos(t * 0.85) * 6;
+
+          // Piso claro da biblioteca + tampo redondo vermelho característico da foto
+          demoCtx.fillStyle = '#EAE6DC';
+          demoCtx.fillRect(0, 0, DEMO_W, DEMO_H);
+
+          demoCtx.fillStyle = '#B83333';
+          demoCtx.beginPath();
+          demoCtx.ellipse(DEMO_W * 0.5, DEMO_H * 0.78, 620, 250, 0, 0, Math.PI * 2);
+          demoCtx.fill();
+
+          const book = this.books[this.activeCoverIndex] || this.books[0];
+          const coverW = 340;
+          const coverH = 510;
+          const cx = (DEMO_W - coverW) * 0.5 + swayX;
+          const cy = DEMO_H * 0.45 - coverH * 0.5 + swayY;
+
+          // Sombra do livro sobre a mesa
+          demoCtx.fillStyle = 'rgba(24, 24, 27, 0.28)';
+          demoCtx.fillRect(cx + 12, cy + 16, coverW, coverH);
+
+          // Capa frontal
+          demoCtx.fillStyle = book.bg;
+          demoCtx.fillRect(cx, cy, coverW, coverH);
+
+          // Borda sutil e vinco de lombada à esquerda
+          demoCtx.strokeStyle = 'rgba(24, 24, 27, 0.22)';
+          demoCtx.lineWidth = 2;
+          demoCtx.strokeRect(cx, cy, coverW, coverH);
+
+          demoCtx.fillStyle = 'rgba(0, 0, 0, 0.14)';
+          demoCtx.fillRect(cx, cy, 14, coverH);
+
+          // Faixa gráfica construtivista na capa
+          demoCtx.fillStyle = book.accent;
+          demoCtx.fillRect(cx + 34, cy + 38, coverW - 68, 12);
+          demoCtx.fillRect(cx + 34, cy + 255, coverW - 68, 115);
+
+          // Etiqueta superior
+          demoCtx.fillStyle = book.fg;
+          demoCtx.globalAlpha = 0.78;
+          demoCtx.font = '600 14px "JetBrains Mono", monospace';
+          demoCtx.textAlign = 'left';
+          demoCtx.textBaseline = 'top';
+          demoCtx.fillText(book.tagline, cx + 34, cy + 64);
+          demoCtx.globalAlpha = 1;
+
+          // Título grande e nítido em múltiplas linhas para leitura perfeita pelo Tesseract
+          demoCtx.fillStyle = book.fg;
+          demoCtx.font = '800 38px "Plus Jakarta Sans", sans-serif';
+          const words = book.title.toUpperCase().split(' ');
+          let lineY = cy + 106;
+          let currentLine = '';
+          for (let i = 0; i < words.length; i++) {
+            const test = currentLine ? `${currentLine} ${words[i]}` : words[i];
+            if (demoCtx.measureText(test).width > coverW - 72 && currentLine) {
+              demoCtx.fillText(currentLine, cx + 34, lineY);
+              lineY += 44;
+              currentLine = words[i];
+            } else {
+              currentLine = test;
+            }
+          }
+          if (currentLine) {
+            demoCtx.fillText(currentLine, cx + 34, lineY);
+          }
+
+          // Nome do Autor na base da capa
+          demoCtx.font = '600 22px "Plus Jakarta Sans", sans-serif';
+          demoCtx.fillText(book.author.toUpperCase(), cx + 34, cy + coverH - 68);
         }
       };
+
+      function updateDemoCoverCounter() {
+        demoCoverCounter.textContent = `MESA DE EXPOSIÇÃO ${DemoShelf.activeCoverIndex + 1}/${DemoShelf.books.length}`;
+      }
 
       // ------------------------------------------------------------------------
       // UTILITÁRIOS DE INTERFACE E DIMENSIONAMENTO
       // ------------------------------------------------------------------------
-      function showToast(message, durationMs = 2800) {
+      function showToast(message, durationMs = 2600) {
         toastText.textContent = message;
         toastBanner.style.opacity = '1';
         clearTimeout(AppState.toastTimeout);
@@ -710,7 +2194,7 @@
       resizeCanvas();
 
       // ------------------------------------------------------------------------
-      // GERENCIAMENTO DE CÂMERA E MODO DEMO
+      // GERENCIAMENTO DE CÂMERA REAL E BIBLIOTECA VIRTUAL
       // ------------------------------------------------------------------------
       function stopMediaStream() {
         if (AppState.mediaStream) {
@@ -725,7 +2209,7 @@
         cameraErrorBox.classList.add('hidden');
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          handleCameraFailure('Seu navegador não suporta acesso direto à câmera. Iniciando Estante Virtual...');
+          handleCameraFailure('Acesso à câmera indisponível. Abrindo Biblioteca Virtual...');
           return;
         }
 
@@ -734,8 +2218,8 @@
           const stream = await navigator.mediaDevices.getUserMedia({
             video: {
               facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
             },
             audio: false
           });
@@ -746,25 +2230,20 @@
 
           AppState.sourceType = 'CAMERA';
           videoEl.classList.remove('hidden');
-          sourceBadgeText.textContent = 'CÂMERA';
+          sourceBadgeText.textContent = 'CÂMERA REAL';
+          demoCoverNav.classList.add('hidden');
 
           enterScannerUI();
-          showToast('Câmera ativada! Aponte para uma estante de livros.');
+          showToast('Câmera calibrada. Enquadre a estante ou uma capa.');
         } catch (err) {
-          let reason = 'Permissão de câmera negada ou indisponível.';
-          if (err && err.name === 'NotFoundError') {
-            reason = 'Nenhuma câmera encontrada neste dispositivo.';
-          }
-          handleCameraFailure(`${reason} Ativando Estante Virtual para demonstração.`);
+          handleCameraFailure('Sem permissão ou câmera ausente. Iniciando Biblioteca Virtual...');
         }
       }
 
       function handleCameraFailure(msg) {
         cameraErrorText.textContent = msg;
         cameraErrorBox.classList.remove('hidden');
-        setTimeout(() => {
-          activateDemoMode();
-        }, 1100);
+        setTimeout(() => activateDemoMode(), 950);
       }
 
       function activateDemoMode() {
@@ -774,10 +2253,12 @@
 
         AppState.sourceType = 'DEMO';
         videoEl.classList.add('hidden');
-        sourceBadgeText.textContent = 'DEMO 3D';
+        sourceBadgeText.textContent = 'ACERVO VIRTUAL';
+        updateDemoCoverCounter();
+        demoCoverNav.classList.toggle('hidden', AppState.captureTarget !== 'COVER');
 
         enterScannerUI();
-        showToast('Modo Estante Virtual ativo — rastreando lombadas!');
+        showToast('Biblioteca Virtual ativa — alterne entre Lombadas e Ler Capa.');
       }
 
       function enterScannerUI() {
@@ -790,7 +2271,7 @@
       }
 
       // ------------------------------------------------------------------------
-      // PROJEÇÃO EXATA "OBJECT-FIT: COVER" PARA ALINHAMENTO AR PERFEITO
+      // PROJEÇÃO "OBJECT-FIT: COVER" PARA ALINHAMENTO ÓTICO EXATO
       // ------------------------------------------------------------------------
       function drawSourceCoverToTarget(targetCtx, targetW, targetH) {
         let srcEl = null;
@@ -809,7 +2290,6 @@
 
         if (!srcEl || srcW === 0 || srcH === 0) return false;
 
-        // Calcula o mesmo recorte "cover" usado pela viewport
         const viewAspect = AppState.viewportW / AppState.viewportH;
         const srcAspect = srcW / srcH;
 
@@ -819,11 +2299,9 @@
         let cropH = srcH;
 
         if (srcAspect > viewAspect) {
-          // Fonte mais larga que a tela -> corta laterais
           cropW = srcH * viewAspect;
           cropX = (srcW - cropW) * 0.5;
         } else {
-          // Fonte mais alta que a tela -> corta topo/base
           cropH = srcW / viewAspect;
           cropY = (srcH - cropH) * 0.5;
         }
@@ -833,29 +2311,27 @@
       }
 
       // ------------------------------------------------------------------------
-      // MOTOR DE VISÃO COMPUTACIONAL: DETECÇÃO DE LOMBADAS VERTICAIS
+      // VISÃO COMPUTACIONAL: DETECÇÃO DE LOMBADAS E RASTREAMENTO ZSAD
       // ------------------------------------------------------------------------
       const lumaBuffer = new Float32Array(PROC_W * PROC_H);
       const rawVertProfile = new Float32Array(PROC_W);
       const smoothVertProfile = new Float32Array(PROC_W);
 
-      function detectVerticalSpines() {
+      function processVisionFrame() {
         const hasFrame = drawSourceCoverToTarget(procCtx, PROC_W, PROC_H);
         if (!hasFrame) return;
 
         const imgData = procCtx.getImageData(0, 0, PROC_W, PROC_H).data;
 
-        // 1. Converte frame reduzido para luminância perceptual
         for (let i = 0, p = 0; i < imgData.length; i += 4, p++) {
           lumaBuffer[p] = 0.299 * imgData[i] + 0.587 * imgData[i + 1] + 0.114 * imgData[i + 2];
         }
 
-        // Região de interesse central (66% centrais da altura)
-        const roiTop = Math.floor(PROC_H * 0.17);
-        const roiBottom = Math.floor(PROC_H * 0.83);
+        // Calcula perfil de gradientes verticais (usado tanto na detecção quanto no snap de bordas)
+        const roiTop = Math.floor(PROC_H * 0.16);
+        const roiBottom = Math.floor(PROC_H * 0.84);
         const roiHeight = roiBottom - roiTop;
 
-        // 2. Soma vertical dos gradientes horizontais de luminância |L(x+1,y) - L(x-1,y)|
         rawVertProfile.fill(0);
         for (let x = 2; x < PROC_W - 2; x++) {
           let edgeSum = 0;
@@ -866,17 +2342,15 @@
             const dx = lumaBuffer[idx + 1] - lumaBuffer[idx - 1];
             const absDx = Math.abs(dx);
             edgeSum += absDx;
-            if (absDx > 8) {
+            if (absDx > 7) {
               consistentSignCount += dx > 0 ? 1 : -1;
             }
           }
 
-          // Bônus de coerência vertical: bordas reais de livros mantêm direção consistente
           const coherence = Math.abs(consistentSignCount) / roiHeight;
           rawVertProfile[x] = (edgeSum / roiHeight) * (0.65 + 0.75 * coherence);
         }
 
-        // 3. Suavização Gaussiana 1D [1, 2, 3, 2, 1] / 9
         smoothVertProfile.fill(0);
         for (let x = 2; x < PROC_W - 2; x++) {
           smoothVertProfile[x] =
@@ -887,7 +2361,25 @@
               rawVertProfile[x + 2]) / 9;
         }
 
-        // 4. Limiar adaptativo baseado na média + desvio padrão e slider de sensibilidade
+        // Quando LOCKED, rastreia a âncora fixa (lombada ou capa) via ZSAD
+        if (AppState.mode === 'LOCKED' && OpticalAnchorTracker.active) {
+          AppState.anchoredTarget = OpticalAnchorTracker.track(
+            lumaBuffer,
+            smoothVertProfile,
+            PROC_W,
+            PROC_H
+          );
+          updateHudStatus();
+          return;
+        }
+
+        // No modo COVER em SCANNING, o enquadramento é guiado pela moldura 2:3
+        if (AppState.captureTarget === 'COVER') {
+          updateHudStatus();
+          return;
+        }
+
+        // Modo SPINE em SCANNING / SPINNING: detecta colunas verticais de livros
         let sum = 0;
         let count = 0;
         for (let x = 4; x < PROC_W - 4; x++) {
@@ -903,13 +2395,11 @@
         }
         const stdDev = Math.sqrt(sqDiffSum / Math.max(1, count));
 
-        // Sensibilidade (15..95) mapeada para multiplicador do desvio padrão
-        const sensNorm = (AppState.sensitivity - 15) / 80; // 0 (baixa) -> 1 (alta)
-        const threshold = Math.max(3.2, mean + (1.15 - sensNorm * 0.95) * stdDev);
+        const sensNorm = (AppState.sensitivity - 15) / 80;
+        const threshold = Math.max(3.0, mean + (1.12 - sensNorm * 0.95) * stdDev);
 
-        // 5. Detecção de picos locais (bordas verticais entre lombadas)
         const edges = [];
-        const minEdgeGap = 4; // Mínimo 4px no grid de 160px (~2.5% da largura da tela)
+        const minEdgeGap = 4;
 
         for (let x = 4; x < PROC_W - 4; x++) {
           const v = smoothVertProfile[x];
@@ -928,10 +2418,9 @@
           }
         }
 
-        // 6. Construção dos intervalos candidatos [x1, x2] e estimativa de altura [y1, y2]
         const rawCandidates = [];
-        const minSpineW = 4;
-        const maxSpineW = 28;
+        const minSpineW = 5;
+        const maxSpineW = 38;
 
         for (let i = 0; i < edges.length - 1; i++) {
           const x1 = edges[i];
@@ -940,7 +2429,6 @@
 
           if (w < minSpineW || w > maxSpineW) continue;
 
-          // Verifica se o interior da lombada é relativamente homogêneo (não é ruído caótico)
           let innerEdgeEnergy = 0;
           if (w >= 6) {
             for (let ix = x1 + 2; ix <= x2 - 2; ix++) {
@@ -950,14 +2438,12 @@
           }
 
           const boundaryStrength = (smoothVertProfile[x1] + smoothVertProfile[x2]) * 0.5;
-          if (boundaryStrength < innerEdgeEnergy * 1.12) continue;
+          if (boundaryStrength < innerEdgeEnergy * 1.1) continue;
 
-          // Estima topo (y1) e base (y2) do livro procurando bordas horizontais
           const { y1, y2 } = estimateBookVerticalBounds(x1, x2);
           const h = y2 - y1;
 
-          // Proporção realista de lombada: altura pelo menos 2.1x maior que a largura
-          if (h < w * 2.1 || h < PROC_H * 0.28) continue;
+          if (h < w * 2.0 || h < PROC_H * 0.28) continue;
 
           rawCandidates.push({
             nx: (x1 + 0.5) / PROC_W,
@@ -968,20 +2454,17 @@
           });
         }
 
-        // 7. Estabilização temporal (Tracking + Lerp)
         updateTrackedSpines(rawCandidates);
       }
 
-      // Estima topo e base individuais de cada livro usando gradientes verticais |L(x,y+1) - L(x,y-1)|
       function estimateBookVerticalBounds(x1, x2) {
         const sampleLeft = Math.min(PROC_W - 2, x1 + 1);
         const sampleRight = Math.max(sampleLeft, x2 - 1);
         const span = Math.max(1, sampleRight - sampleLeft + 1);
 
-        let bestTop = Math.floor(PROC_H * 0.14);
+        let bestTop = Math.floor(PROC_H * 0.15);
         let maxTopScore = 0;
 
-        // Procura borda superior na metade superior da imagem
         for (let y = 6; y < Math.floor(PROC_H * 0.45); y++) {
           let hEdge = 0;
           for (let x = sampleLeft; x <= sampleRight; x++) {
@@ -989,16 +2472,15 @@
             hEdge += Math.abs(lumaBuffer[idx + PROC_W] - lumaBuffer[idx - PROC_W]);
           }
           hEdge /= span;
-          if (hEdge > maxTopScore && hEdge > 7) {
+          if (hEdge > maxTopScore && hEdge > 6.5) {
             maxTopScore = hEdge;
             bestTop = y;
           }
         }
 
-        let bestBottom = Math.floor(PROC_H * 0.86);
+        let bestBottom = Math.floor(PROC_H * 0.85);
         let maxBottomScore = 0;
 
-        // Procura borda inferior (prateleira) na metade inferior da imagem
         for (let y = Math.floor(PROC_H * 0.58); y < PROC_H - 6; y++) {
           let hEdge = 0;
           for (let x = sampleLeft; x <= sampleRight; x++) {
@@ -1006,7 +2488,7 @@
             hEdge += Math.abs(lumaBuffer[idx + PROC_W] - lumaBuffer[idx - PROC_W]);
           }
           hEdge /= span;
-          if (hEdge > maxBottomScore && hEdge > 7) {
+          if (hEdge > maxBottomScore && hEdge > 6.5) {
             maxBottomScore = hEdge;
             bestBottom = y;
           }
@@ -1015,18 +2497,16 @@
         return { y1: bestTop, y2: bestBottom };
       }
 
-      // Associa detecções quadro-a-quadro e aplica suavização exponencial (Lerp)
       function updateTrackedSpines(candidates) {
         const matchedCandidateIndices = new Set();
-        const lerpRate = AppState.mode === 'LOCKED' ? 0.18 : 0.32;
+        const lerpRate = 0.32;
 
-        // Atualiza lombadas já existentes por proximidade horizontal
         for (let i = 0; i < AppState.trackedSpines.length; i++) {
           const track = AppState.trackedSpines[i];
           const trackCenterX = track.targetX + track.targetW * 0.5;
 
           let bestIdx = -1;
-          let bestDist = 0.038; // Tolerância de deslocamento entre frames
+          let bestDist = 0.038;
 
           for (let c = 0; c < candidates.length; c++) {
             if (matchedCandidateIndices.has(c)) continue;
@@ -1049,108 +2529,231 @@
             track.targetW = cand.nw;
             track.targetH = cand.nh;
             track.confidence = cand.confidence;
-            track.ttl = AppState.mode === 'LOCKED' && track.id === AppState.lockedSpineId ? 18 : 6;
+            track.ttl = 6;
           } else {
             track.ttl -= 1;
           }
 
-          // Interpolação suave para eliminar trepidação visual
           track.x += (track.targetX - track.x) * lerpRate;
           track.y += (track.targetY - track.y) * lerpRate;
           track.w += (track.targetW - track.w) * lerpRate;
           track.h += (track.targetH - track.h) * lerpRate;
         }
 
-        // Remove trilhas expiradas (mantém a lombada travada viva enquanto estiver no modo LOCKED)
-        AppState.trackedSpines = AppState.trackedSpines.filter(
-          (t) => t.ttl > 0 || (AppState.mode === 'LOCKED' && t.id === AppState.lockedSpineId)
-        );
+        AppState.trackedSpines = AppState.trackedSpines.filter((t) => t.ttl > 0);
 
-        // Cria novas trilhas para candidatos recém-descobertos (apenas fora do modo LOCKED)
-        if (AppState.mode !== 'LOCKED') {
-          for (let c = 0; c < candidates.length; c++) {
-            if (matchedCandidateIndices.has(c)) continue;
-            const cand = candidates[c];
-            AppState.trackedSpines.push({
-              id: AppState.nextSpineId++,
-              x: cand.nx,
-              y: cand.ny,
-              w: cand.nw,
-              h: cand.nh,
-              targetX: cand.nx,
-              targetY: cand.ny,
-              targetW: cand.nw,
-              targetH: cand.nh,
-              confidence: cand.confidence,
-              ttl: 5
-            });
-          }
+        for (let c = 0; c < candidates.length; c++) {
+          if (matchedCandidateIndices.has(c)) continue;
+          const cand = candidates[c];
+          AppState.trackedSpines.push({
+            id: AppState.nextSpineId++,
+            x: cand.nx,
+            y: cand.ny,
+            w: cand.nw,
+            h: cand.nh,
+            targetX: cand.nx,
+            targetY: cand.ny,
+            targetW: cand.nw,
+            targetH: cand.nh,
+            confidence: cand.confidence,
+            ttl: 5
+          });
         }
 
-        // Ordena da esquerda para a direita na estante
         AppState.trackedSpines.sort((a, b) => a.x - b.x);
         updateHudStatus();
       }
 
       function updateHudStatus() {
-        const count = AppState.trackedSpines.length;
-
         if (AppState.mode === 'LOCKED') {
-          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
-          spineCounterText.textContent = 'Lombada escolhida!';
+          statusDot.className = 'w-2 h-2 rounded-full bg-[#C83232] shrink-0';
+          spineCounterText.textContent =
+            AppState.captureTarget === 'COVER' ? 'Capa ancorada no visor' : 'Âncora fixada no exemplar';
           return;
         }
 
+        if (AppState.captureTarget === 'COVER') {
+          statusDot.className = 'w-2 h-2 rounded-full bg-[#2D6A4F] animate-pulse-subtle shrink-0';
+          spineCounterText.textContent = 'Enquadre a capa na moldura';
+          return;
+        }
+
+        const count = AppState.trackedSpines.length;
+
         if (AppState.mode === 'SPINNING') {
-          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0';
-          spineCounterText.textContent = 'Luz seletora em movimento...';
+          statusDot.className = 'w-2 h-2 rounded-full bg-[#EAB308] animate-ping shrink-0';
+          spineCounterText.textContent = 'Luminária varrendo lombadas...';
           return;
         }
 
         if (count === 0) {
-          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
-          spineCounterText.textContent = 'Aponte para uma estante...';
+          statusDot.className = 'w-2 h-2 rounded-full bg-[#52525B] shrink-0';
+          spineCounterText.textContent = 'Aguardando estante...';
         } else if (count === 1) {
-          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse-dot shrink-0';
-          spineCounterText.textContent = '1 lombada identificada';
+          statusDot.className = 'w-2 h-2 rounded-full bg-[#EAB308] animate-pulse-subtle shrink-0';
+          spineCounterText.textContent = '1 lombada mapeada';
         } else {
-          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse-dot shrink-0';
-          spineCounterText.textContent = `${count} lombadas identificadas`;
+          statusDot.className = 'w-2 h-2 rounded-full bg-[#EAB308] animate-pulse-subtle shrink-0';
+          spineCounterText.textContent = `${count} lombadas mapeadas`;
         }
       }
 
       // ------------------------------------------------------------------------
-      // LÓGICA DA ROLETA SELETORA ("LUZ SELETORA")
+      // SINTETIZADOR ACÚSTICO DISCRETO (WEB AUDIO API)
       // ------------------------------------------------------------------------
+      const SoundEngine = {
+        ctx: null,
+
+        unlock() {
+          if (AppState.audioMuted) return;
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume();
+            }
+          } catch (e) {}
+        },
+
+        playHop(progress) {
+          if (AppState.audioMuted || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(340 + progress * 220, now);
+            gain.gain.setValueAtTime(0.035, now);
+            gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.045);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.05);
+          } catch (e) {}
+        },
+
+        playLock() {
+          if (AppState.audioMuted || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.exponentialRampToValueAtTime(780, now + 0.14);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.24);
+          } catch (e) {}
+        }
+      };
+
+      // ------------------------------------------------------------------------
+      // ALTERNÂNCIA ENTRE MODOS (LOMBADAS vs. LER CAPA) E ESTADOS DE CAPTURA
+      // ------------------------------------------------------------------------
+      function setCaptureTarget(target) {
+        if (AppState.captureTarget === target && AppState.mode === 'SCANNING') return;
+        clearTimeout(AppState.spinTimerId);
+        AppState.analysisRunId++;
+        AppState.captureTarget = target;
+
+        const isCover = target === 'COVER';
+
+        btnModeSpine.className = isCover
+          ? 'mode-segment-inactive px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5'
+          : 'mode-segment-active px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5';
+
+        btnModeCover.className = isCover
+          ? 'mode-segment-active px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5'
+          : 'mode-segment-inactive px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5';
+
+        btnToggleSensitivity.classList.toggle('hidden', isCover);
+        if (isCover) sensitivityDrawer.classList.add('hidden');
+
+        demoCoverNav.classList.toggle('hidden', !(isCover && AppState.sourceType === 'DEMO'));
+
+        setAppMode('SCANNING');
+      }
+
       function setAppMode(newMode) {
         AppState.mode = newMode;
+        const isCover = AppState.captureTarget === 'COVER';
 
         if (newMode === 'SCANNING') {
           AppState.highlightedIndex = -1;
           AppState.lockedSpineId = null;
-          AppState.targetDimAlpha = 0;
-          controlsScanning.classList.remove('hidden');
-          controlsLocked.classList.add('hidden');
+          AppState.anchoredTarget = null;
+          AppState.isDrawerOpen = false;
+          OpticalAnchorTracker.reset();
+          AppState.targetDimAlpha = isCover ? 0.28 : 0;
+
+          readingSheet.classList.add('hidden');
+          lockedActionPill.classList.add('hidden');
+          captureModeSwitcher.classList.remove('hidden');
+          controlsSpineMode.classList.toggle('hidden', isCover);
+          controlsCoverMode.classList.toggle('hidden', !isCover);
+          hudBottom.classList.remove('hidden');
+
           btnSpin.disabled = false;
           btnSpinLabel.textContent = 'Sortear Leitura';
-          bottomHintText.textContent = 'Enquadre as lombadas na área central e toque para sortear';
+          bottomHintText.textContent = isCover
+            ? 'CENTRALIZE A CAPA DO LIVRO E CAPTURE'
+            : 'TOQUE EM UMA LOMBADA OU SORTEIE UMA LEITURA';
         } else if (newMode === 'SPINNING') {
           AppState.lockedSpineId = null;
-          AppState.targetDimAlpha = 0.42;
-          controlsScanning.classList.remove('hidden');
-          controlsLocked.classList.add('hidden');
+          AppState.anchoredTarget = null;
+          AppState.isDrawerOpen = false;
+          OpticalAnchorTracker.reset();
+          AppState.targetDimAlpha = 0.24;
+
+          readingSheet.classList.add('hidden');
+          lockedActionPill.classList.add('hidden');
+          captureModeSwitcher.classList.add('hidden');
+          controlsSpineMode.classList.remove('hidden');
+          controlsCoverMode.classList.add('hidden');
+          hudBottom.classList.remove('hidden');
+
           btnSpin.disabled = true;
-          btnSpinLabel.textContent = 'Sorteando...';
-          bottomHintText.textContent = 'A luz está percorrendo a estante...';
+          btnSpinLabel.textContent = 'Luminária selecionando...';
+          bottomHintText.textContent = 'SELETOR ÓTICO EM CURSO';
         } else if (newMode === 'LOCKED') {
-          AppState.targetDimAlpha = 0.68;
-          controlsScanning.classList.add('hidden');
-          controlsLocked.classList.remove('hidden');
-          bottomHintText.textContent = 'Sua próxima leitura está iluminada na estante';
-          spawnDustParticles();
+          AppState.targetDimAlpha = 0.34;
+          captureModeSwitcher.classList.add('hidden');
+          controlsSpineMode.classList.add('hidden');
+          controlsCoverMode.classList.add('hidden');
+
+          if (!AppState.isDrawerOpen) {
+            readingSheet.classList.add('hidden');
+            hudBottom.classList.remove('hidden');
+            lockedActionPill.classList.remove('hidden');
+          }
+          bottomHintText.textContent = isCover
+            ? 'CAPA REGISTRADA — ABRA A FICHA QUANDO QUISER'
+            : 'EXEMPLAR ANCORADO — LOCALIZE NA ESTANTE';
         }
 
         updateHudStatus();
+      }
+
+      function openBookDrawer() {
+        if (AppState.mode !== 'LOCKED') return;
+        AppState.isDrawerOpen = true;
+        hudBottom.classList.add('hidden');
+        readingSheet.classList.remove('hidden');
+      }
+
+      function closeBookDrawer() {
+        AppState.isDrawerOpen = false;
+        readingSheet.classList.add('hidden');
+        if (AppState.mode === 'LOCKED') {
+          hudBottom.classList.remove('hidden');
+          lockedActionPill.classList.remove('hidden');
+        }
       }
 
       function startSelectorRoulette() {
@@ -1159,41 +2762,35 @@
 
         const spines = AppState.trackedSpines;
         if (spines.length === 0) {
-          // Ajuda o usuário elevando levemente a sensibilidade se nada foi detectado ainda
-          if (AppState.sensitivity < 80) {
-            AppState.sensitivity = Math.min(85, AppState.sensitivity + 12);
+          if (AppState.sensitivity < 82) {
+            AppState.sensitivity = Math.min(86, AppState.sensitivity + 12);
             sensitivitySlider.value = AppState.sensitivity;
             sensitivityValueLabel.textContent = `${AppState.sensitivity}%`;
           }
-          showToast('Nenhuma lombada detectada. Aproxime a câmera da estante.');
+          showToast('Nenhuma lombada mapeada. Aproxime da prateleira ou use Ler Capa.');
           return;
         }
 
         setAppMode('SPINNING');
 
-        // Define número total de saltos da luz (entre 20 e 28 saltos)
-        const totalSteps = spines.length === 1 ? 8 : 22 + Math.floor(Math.random() * 7);
+        const totalSteps = spines.length === 1 ? 6 : 18 + Math.floor(Math.random() * 6);
         AppState.spinTotalSteps = totalSteps;
         AppState.spinStep = 0;
-
-        // Começa em uma lombada aleatória
         AppState.highlightedIndex = Math.floor(Math.random() * spines.length);
 
         const runStep = () => {
           const currentSpines = AppState.trackedSpines;
           if (currentSpines.length === 0) {
             setAppMode('SCANNING');
-            showToast('Lombadas perdidas de vista. Tente novamente.');
+            showToast('Perda de rastreamento. Enquadre novamente.');
             return;
           }
 
           const progress = AppState.spinStep / AppState.spinTotalSteps;
 
-          // Escolhe a próxima lombada (evitando repetir a mesma imediatamente quando há >= 2)
           if (currentSpines.length > 1) {
             let nextIdx = AppState.highlightedIndex;
-            // Nos primeiros passos faz saltos mais amplos; no final faz passos curtos dramáticos
-            if (progress > 0.72) {
+            if (progress > 0.7) {
               const dir = Math.random() < 0.55 ? 1 : -1;
               nextIdx = (AppState.highlightedIndex + dir + currentSpines.length) % currentSpines.length;
             } else {
@@ -1210,15 +2807,11 @@
           AppState.spinStep++;
 
           if (AppState.spinStep >= AppState.spinTotalSteps) {
-            // Parou no livro escolhido!
             const chosenSpine = currentSpines[AppState.highlightedIndex] || currentSpines[0];
-            AppState.lockedSpineId = chosenSpine.id;
-            setAppMode('LOCKED');
-            SoundEngine.playLock();
+            lockAndAnalyzeExemplar(chosenSpine, 'SPINE');
           } else {
-            // Curva de desaceleração exponencial suave: rápido no início (55ms), lento no fim (~360ms)
-            const eased = Math.pow(progress, 2.35);
-            const delayMs = 55 + eased * 310;
+            const eased = Math.pow(progress, 2.3);
+            const delayMs = 50 + eased * 270;
             AppState.spinTimerId = setTimeout(runStep, delayMs);
           }
         };
@@ -1226,23 +2819,353 @@
         runStep();
       }
 
-      function spawnDustParticles() {
-        AppState.dustParticles = [];
-        for (let i = 0; i < 24; i++) {
-          AppState.dustParticles.push({
-            rx: Math.random(),
-            ry: Math.random(),
-            vx: (Math.random() - 0.5) * 0.08,
-            vy: -0.05 - Math.random() * 0.12,
-            size: 1 + Math.random() * 2.2,
-            phase: Math.random() * Math.PI * 2
-          });
+      function captureAndAnalyzeCover() {
+        SoundEngine.unlock();
+        const coverRect = getCoverGuideNormalizedRect();
+        lockAndAnalyzeExemplar(coverRect, 'COVER');
+      }
+
+      /**
+       * Trava a âncora visual ZSAD (na lombada ou na capa) e dispara OCR + Books + Podcasts + YouTube
+       * em segundo plano, mantendo o visor livre até o usuário decidir abrir a ficha.
+       */
+      async function lockAndAnalyzeExemplar(targetBox, lockKind = 'SPINE') {
+        const runId = ++AppState.analysisRunId;
+        AppState.lockedSpineId = targetBox.id || 1;
+
+        OpticalAnchorTracker.capture(targetBox, lumaBuffer, PROC_W, PROC_H, lockKind);
+        AppState.anchoredTarget = OpticalAnchorTracker.getNormalizedBox();
+
+        setAppMode('LOCKED');
+        SoundEngine.playLock();
+
+        pillStatusDot.className = 'w-2 h-2 rounded-full bg-[#EAB308] animate-ping shrink-0';
+        pillReadyTag.classList.add('hidden');
+
+        sheetSourceTag.textContent = lockKind === 'COVER' ? 'LENDO CAPA' : 'INDEXANDO LOMBADA';
+        sheetLoadingState.classList.remove('hidden');
+        sheetResultState.classList.add('hidden');
+        sheetLoadingTitle.textContent =
+          lockKind === 'COVER' ? 'Lendo título e autor da capa...' : 'Extraindo tipografia da lombada...';
+        sheetLoadingSub.textContent = 'GOOGLE BOOKS • PODCASTS • YOUTUBE';
+        btnSaveLabel.textContent = 'Guardar ficha';
+        diagModeLabel.textContent = lockKind === 'COVER' ? 'RECORTE DA CAPA' : 'RECORTE DA LOMBADA';
+
+        const currentAnchor = AppState.anchoredTarget || targetBox;
+        const ocrResult =
+          lockKind === 'COVER'
+            ? await OCREngine.readCover(currentAnchor)
+            : await OCREngine.readSpine(currentAnchor);
+
+        if (runId !== AppState.analysisRunId) return;
+
+        ocrCropPreviewImg.src = ocrResult.previewDataUrl;
+        ocrRawTextDisplay.textContent = ocrResult.rawText || '(sem texto detectado)';
+        ocrEditInput.value = ocrResult.cleanedText || '';
+        diagConfidenceBadge.textContent = `CONF: ${ocrResult.confidence}% • ${ocrResult.orientation}`;
+
+        sheetLoadingTitle.textContent = ocrResult.cleanedText
+          ? `Consultando "${ocrResult.cleanedText}"...`
+          : 'Nenhum texto nítido extraído';
+
+        await executeCatalogLookup(ocrResult.cleanedText, runId);
+
+        if (runId === AppState.analysisRunId) {
+          pillStatusDot.className = 'w-2 h-2 rounded-full bg-[#2D6A4F] shrink-0';
+          pillReadyTag.classList.remove('hidden');
         }
       }
 
+      async function executeCatalogLookup(queryText, runId = AppState.analysisRunId) {
+        let book = null;
+        if (queryText && queryText.trim().length >= 2) {
+          book = await BookSearchService.searchBook(queryText.trim());
+        }
+
+        if (runId !== AppState.analysisRunId) return;
+
+        sheetLoadingState.classList.add('hidden');
+        sheetResultState.classList.remove('hidden');
+
+        const resolvedBook = book || {
+          id: `manual_${Date.now()}`,
+          title: queryText ? `Nenhum registro para "${queryText}"` : 'Tipografia não identificada',
+          subtitle: 'Use o campo de busca no topo desta ficha para digitar ou corrigir o título.',
+          authors: 'Leitura ótica inconclusiva',
+          publisher: 'Busca manual disponível',
+          publishedDate: '',
+          pageCount: null,
+          description:
+            'A âncora visual permanece presa ao exemplar no visor. Caso queira consultar sinopse, podcasts e vídeos, digite o título ou autor no campo acima.',
+          coverUrl: '',
+          sourceApi: 'SEM CORRESPONDÊNCIA'
+        };
+
+        AppState.currentBookData = resolvedBook;
+        renderBookSheet(resolvedBook);
+
+        // Dispara Podcasts e Vídeos do YouTube em paralelo
+        renderMediaSkeletons();
+        const searchTitle = book ? resolvedBook.title : queryText;
+        const searchAuthor = book ? resolvedBook.authors : '';
+
+        const [podcastData, ytData] = await Promise.all([
+          PodcastSearchService.searchPodcasts(searchTitle, searchAuthor),
+          YouTubeSearchService.searchVideos(searchTitle, searchAuthor)
+        ]);
+
+        if (runId !== AppState.analysisRunId) return;
+        renderPodcastSection(podcastData);
+        renderYouTubeSection(ytData);
+      }
+
+      function renderBookSheet(book) {
+        sheetSourceTag.textContent = book.sourceApi;
+        bookApiBadge.textContent = book.sourceApi;
+        bookTitle.textContent = book.title;
+        bookAuthor.textContent = book.authors;
+        bookPublisher.textContent = book.publisher;
+
+        if (book.subtitle) {
+          bookSubtitle.textContent = book.subtitle;
+          bookSubtitle.classList.remove('hidden');
+        } else {
+          bookSubtitle.classList.add('hidden');
+        }
+
+        const metaParts = [];
+        if (book.publishedDate) metaParts.push(book.publishedDate);
+        if (book.pageCount) metaParts.push(`${book.pageCount} págs.`);
+        bookMetaLine.textContent = metaParts.length > 0 ? metaParts.join(' • ') : 'EDIÇÃO INDEXADA';
+
+        fallbackCoverTitle.textContent = book.title;
+        fallbackCoverAuthor.textContent = book.authors;
+
+        if (book.coverUrl) {
+          bookCoverImg.src = book.coverUrl;
+          bookCoverImg.onload = () => {
+            bookCoverImg.classList.remove('hidden');
+            bookCoverFallback.classList.add('hidden');
+          };
+          bookCoverImg.onerror = () => {
+            bookCoverImg.classList.add('hidden');
+            bookCoverFallback.classList.remove('hidden');
+          };
+        } else {
+          bookCoverImg.classList.add('hidden');
+          bookCoverFallback.classList.remove('hidden');
+        }
+
+        const cleanDesc = (book.description || '').replace(/<[^>]+>/g, '').trim();
+        AppState.synopsisExpanded = false;
+        bookSynopsis.classList.add('line-clamp-3');
+
+        if (cleanDesc) {
+          bookSynopsis.textContent = cleanDesc;
+          if (cleanDesc.length > 170) {
+            btnToggleSynopsis.classList.remove('hidden');
+            btnToggleSynopsis.textContent = 'Ler sinopse completa';
+          } else {
+            btnToggleSynopsis.classList.add('hidden');
+          }
+        } else {
+          bookSynopsis.textContent = 'Sinopse não disponibilizada pela base bibliográfica para esta edição.';
+          btnToggleSynopsis.classList.add('hidden');
+        }
+      }
+
+      function renderMediaSkeletons() {
+        podcastSourceBadge.textContent = 'BUSCANDO EPISÓDIOS...';
+        youtubeSourceBadge.textContent = 'BUSCANDO VÍDEOS...';
+        podcastCardsContainer.innerHTML = '';
+        youtubeCardsContainer.innerHTML = '';
+
+        for (let i = 0; i < 3; i++) {
+          const skPod = document.createElement('div');
+          skPod.className = 'rounded-xl border border-[#18181B]/10 bg-[#EFECE4]/70 p-3 animate-pulse space-y-2';
+          skPod.innerHTML =
+            '<div class="h-3 w-16 rounded bg-[#18181B]/10"></div><div class="h-4 w-full rounded bg-[#18181B]/10"></div><div class="h-3 w-2/3 rounded bg-[#18181B]/10"></div>';
+          podcastCardsContainer.appendChild(skPod);
+
+          const skYt = skPod.cloneNode(true);
+          youtubeCardsContainer.appendChild(skYt);
+        }
+      }
+
+      function renderPodcastSection(podcastData) {
+        podcastCardsContainer.innerHTML = '';
+
+        if (podcastData.mode === 'LIVE' && Array.isArray(podcastData.items) && podcastData.items.length > 0) {
+          podcastSourceBadge.textContent = 'APPLE PODCASTS // EPISÓDIOS';
+          podcastData.items.forEach((ep) => {
+            const card = document.createElement('a');
+            card.href = ep.url;
+            card.target = '_blank';
+            card.rel = 'noopener noreferrer';
+            card.className =
+              'group rounded-xl border border-[#18181B]/14 bg-white p-2.5 flex flex-col justify-between gap-2 hover:border-[#2D6A4F] transition shadow-xs';
+
+            const top = document.createElement('div');
+            top.className = 'flex items-center gap-2.5';
+
+            const art = document.createElement('img');
+            art.src = ep.artwork || 'https://placehold.co/100x100/2D6A4F/F6F4EF?text=PODCAST';
+            art.alt = ep.showName;
+            art.loading = 'lazy';
+            art.className = 'w-11 h-11 rounded-lg object-cover border border-[#18181B]/10 shrink-0 bg-[#EFECE4]';
+            art.onerror = () => {
+              art.src = 'https://placehold.co/100x100/2D6A4F/F6F4EF?text=AUDIO';
+            };
+
+            const meta = document.createElement('div');
+            meta.className = 'min-w-0 flex-1';
+            meta.innerHTML = `
+              <span class="inline-block text-[9px] font-mono-tech px-1.5 py-0.2 rounded bg-[#2D6A4F]/12 text-[#2D6A4F] font-semibold">🎧 ${ep.durationLabel}</span>
+              <p class="text-[11px] font-medium text-[#52525B] truncate mt-0.5">${ep.showName}</p>
+            `;
+
+            top.appendChild(art);
+            top.appendChild(meta);
+
+            const epTitle = document.createElement('p');
+            epTitle.className = 'text-xs font-semibold text-[#18181B] line-clamp-2 leading-snug group-hover:text-[#2D6A4F]';
+            epTitle.textContent = ep.title;
+
+            card.appendChild(top);
+            card.appendChild(epTitle);
+            podcastCardsContainer.appendChild(card);
+          });
+          return;
+        }
+
+        podcastSourceBadge.textContent = 'ROTEIROS DE ESCUTA';
+        podcastData.items.forEach((item) => {
+          const card = document.createElement('a');
+          card.href = item.url;
+          card.target = '_blank';
+          card.rel = 'noopener noreferrer';
+          card.className =
+            'group rounded-xl border border-[#18181B]/14 bg-white p-3 flex flex-col justify-between gap-1.5 hover:border-[#2D6A4F] transition';
+
+          const topRow = document.createElement('div');
+          topRow.className = 'flex items-center justify-between text-[9px] font-mono-tech text-[#2D6A4F] font-semibold';
+          topRow.innerHTML = `<span>🎧 ${item.tag}</span><span>↗ OUVIR</span>`;
+
+          const titleEl = document.createElement('p');
+          titleEl.className = 'font-editorial text-sm font-semibold text-[#18181B] leading-snug group-hover:text-[#2D6A4F]';
+          titleEl.textContent = item.title;
+
+          const subEl = document.createElement('p');
+          subEl.className = 'text-[11px] text-[#52525B] line-clamp-2 leading-snug';
+          subEl.textContent = item.subtitle;
+
+          card.appendChild(topRow);
+          card.appendChild(titleEl);
+          card.appendChild(subEl);
+          podcastCardsContainer.appendChild(card);
+        });
+      }
+
+      function renderYouTubeSection(ytData) {
+        youtubeCardsContainer.innerHTML = '';
+
+        if (ytData.mode === 'LIVE' && Array.isArray(ytData.items) && ytData.items.length > 0) {
+          youtubeSourceBadge.textContent = 'YOUTUBE // RESULTADOS';
+          ytData.items.forEach((video) => {
+            const card = document.createElement('a');
+            card.href = video.url;
+            card.target = '_blank';
+            card.rel = 'noopener noreferrer';
+            card.className =
+              'group rounded-xl border border-[#18181B]/14 bg-white overflow-hidden flex flex-col hover:border-[#C83232] transition shadow-xs';
+
+            const thumbWrap = document.createElement('div');
+            thumbWrap.className = 'relative w-full aspect-video bg-[#18181B]/10 overflow-hidden';
+
+            const img = document.createElement('img');
+            img.src = video.thumbnail;
+            img.alt = video.title;
+            img.loading = 'lazy';
+            img.className = 'w-full h-full object-cover group-hover:scale-103 transition-transform duration-300';
+            img.onerror = () => {
+              img.src = 'https://placehold.co/320x180/EAE5D9/18181B?text=YouTube+Video';
+            };
+
+            const playBadge = document.createElement('span');
+            playBadge.className =
+              'absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-[#18181B]/85 text-[#F6F4EF] text-[9px] font-mono-tech';
+            playBadge.textContent = '▶ ASSISTIR';
+
+            thumbWrap.appendChild(img);
+            thumbWrap.appendChild(playBadge);
+
+            const body = document.createElement('div');
+            body.className = 'p-2.5 flex-1 flex flex-col justify-between gap-1';
+
+            const vTitle = document.createElement('p');
+            vTitle.className = 'text-xs font-semibold text-[#18181B] line-clamp-2 leading-snug group-hover:text-[#C83232]';
+            vTitle.textContent = video.title;
+
+            const vChan = document.createElement('p');
+            vChan.className = 'text-[10px] font-mono-tech text-[#52525B] truncate';
+            vChan.textContent = video.channel;
+
+            body.appendChild(vTitle);
+            body.appendChild(vChan);
+
+            card.appendChild(thumbWrap);
+            card.appendChild(body);
+            youtubeCardsContainer.appendChild(card);
+          });
+          return;
+        }
+
+        youtubeSourceBadge.textContent = 'ROTEIROS DE PESQUISA';
+        ytData.items.forEach((item) => {
+          const card = document.createElement('a');
+          card.href = item.url;
+          card.target = '_blank';
+          card.rel = 'noopener noreferrer';
+          card.className =
+            'group rounded-xl border border-[#18181B]/14 bg-white p-3 flex flex-col justify-between gap-1.5 hover:border-[#C83232] transition';
+
+          const topRow = document.createElement('div');
+          topRow.className = 'flex items-center justify-between text-[9px] font-mono-tech text-[#C83232] font-semibold';
+          topRow.innerHTML = `<span>▶ ${item.tag}</span><span>↗ YOUTUBE</span>`;
+
+          const titleEl = document.createElement('p');
+          titleEl.className = 'font-editorial text-sm font-semibold text-[#18181B] leading-snug group-hover:text-[#C83232]';
+          titleEl.textContent = item.title;
+
+          const subEl = document.createElement('p');
+          subEl.className = 'text-[11px] text-[#52525B] line-clamp-2 leading-snug';
+          subEl.textContent = item.subtitle;
+
+          card.appendChild(topRow);
+          card.appendChild(titleEl);
+          card.appendChild(subEl);
+          youtubeCardsContainer.appendChild(card);
+        });
+      }
+
       // ------------------------------------------------------------------------
-      // RENDERIZAÇÃO DA CAMADA DE REALIDADE AUMENTADA (CANVAS 2D)
+      // RENDERIZAÇÃO AR: LUMINÁRIA AMARELA + GUIAS MURAL + MOLDURA DE CAPA
       // ------------------------------------------------------------------------
+      function drawRoundedRectPath(context, x, y, w, h, r) {
+        const radius = Math.min(r, w * 0.5, h * 0.5);
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.lineTo(x + w - radius, y);
+        context.quadraticCurveTo(x + w, y, x + w, y + radius);
+        context.lineTo(x + w, y + h - radius);
+        context.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        context.lineTo(x + radius, y + h);
+        context.quadraticCurveTo(x, y + h, x, y + h - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+        context.closePath();
+      }
+
       function renderAROverlay(nowMs) {
         const dt = Math.min(0.05, (nowMs - AppState.lastFrameTime) * 0.001);
         AppState.lastFrameTime = nowMs;
@@ -1252,127 +3175,201 @@
 
         ctx.clearRect(0, 0, W, H);
 
-        // Se estiver no modo Demo, desenha a estante virtual como fundo no canvas
         if (AppState.sourceType === 'DEMO') {
           DemoShelf.render(nowMs);
           drawSourceCoverToTarget(ctx, W, H);
         }
 
-        // Executa o pipeline de visão computacional se a experiência já começou
         if (AppState.mode !== 'INIT') {
-          detectVerticalSpines();
+          processVisionFrame();
         } else {
           return;
         }
 
-        // Suaviza a transição de escurecimento do fundo (efeito teatro)
         AppState.dimAlpha += (AppState.targetDimAlpha - AppState.dimAlpha) * Math.min(1, dt * 8);
 
         const spines = AppState.trackedSpines;
-        let activeSpine = null;
-        let activeSpineRank = 1;
+        const isCoverMode = AppState.captureTarget === 'COVER';
+        let activeBox = null;
 
         if (AppState.mode === 'SPINNING' && spines.length > 0) {
           const idx = Math.min(AppState.highlightedIndex, spines.length - 1);
-          activeSpine = spines[idx];
-          activeSpineRank = idx + 1;
-        } else if (AppState.mode === 'LOCKED' && spines.length > 0) {
-          const foundIdx = spines.findIndex((s) => s.id === AppState.lockedSpineId);
-          if (foundIdx !== -1) {
-            activeSpine = spines[foundIdx];
-            activeSpineRank = foundIdx + 1;
-          } else {
-            activeSpine = spines[0];
-            activeSpineRank = 1;
-          }
+          activeBox = spines[idx];
+        } else if (AppState.mode === 'LOCKED') {
+          activeBox = AppState.anchoredTarget || (isCoverMode ? getCoverGuideNormalizedRect() : spines[0] || null);
+        } else if (isCoverMode && AppState.mode === 'SCANNING') {
+          activeBox = getCoverGuideNormalizedRect();
         }
 
-        // 1. Máscara de escurecimento cinematográfico com recorte para o livro iluminado
+        // 1. Véu arquitetônico com recorte nítido no exemplar ou moldura de capa
         if (AppState.dimAlpha > 0.01) {
           ctx.save();
-          ctx.fillStyle = `rgba(5, 8, 15, ${AppState.dimAlpha.toFixed(3)})`;
+          ctx.fillStyle = `rgba(24, 24, 27, ${AppState.dimAlpha.toFixed(3)})`;
           ctx.beginPath();
           ctx.rect(0, 0, W, H);
 
-          if (activeSpine) {
-            const pad = 4;
-            const bx = activeSpine.x * W - pad;
-            const by = activeSpine.y * H - pad;
-            const bw = activeSpine.w * W + pad * 2;
-            const bh = activeSpine.h * H + pad * 2;
-            // Subtrai o retângulo do livro escolhido (regra evenodd) deixando-o 100% nítido
-            drawRoundedRectPath(ctx, bx, by, bw, bh, 10);
+          if (activeBox) {
+            const pad = AppState.mode === 'LOCKED' ? 5 : 0;
+            drawRoundedRectPath(
+              ctx,
+              activeBox.x * W - pad,
+              activeBox.y * H - pad,
+              activeBox.w * W + pad * 2,
+              activeBox.h * H + pad * 2,
+              8
+            );
           }
 
           ctx.fill('evenodd');
           ctx.restore();
         }
 
-        // 2. Desenha guias sutis de rastreamento para todas as lombadas detectadas
-        if (AppState.mode === 'SCANNING' || AppState.mode === 'SPINNING') {
-          drawScanningGuides(W, H, spines, activeSpine, nowMs);
+        // 2. Escala milimétrica lateral
+        drawOpticalRulerTicks(W, H);
+
+        // 3. Renderização específica de CAPA vs. LOMBADAS
+        if (isCoverMode && AppState.mode === 'SCANNING' && activeBox) {
+          drawCoverViewfinderGuide(W, H, activeBox, nowMs);
+          return;
         }
 
-        // 3. Desenha o feixe da Luz Seletora sobre o livro ativo (SPINNING ou LOCKED)
-        if (activeSpine && (AppState.mode === 'SPINNING' || AppState.mode === 'LOCKED')) {
-          drawSelectorSpotlight(W, H, activeSpine, activeSpineRank, nowMs, dt);
+        if (!isCoverMode && (AppState.mode === 'SCANNING' || AppState.mode === 'SPINNING')) {
+          drawMuralSpineGuides(W, H, spines, activeBox, nowMs);
+        }
+
+        if (activeBox && (AppState.mode === 'SPINNING' || AppState.mode === 'LOCKED')) {
+          drawPendantSpotlightPrism(W, H, activeBox, nowMs);
         }
       }
 
-      // Desenha os marcadores HUD ciano nas lombadas rastreadas + linha de varredura
-      function drawScanningGuides(W, H, spines, activeSpine, nowMs) {
-        const pulse = 0.55 + 0.35 * Math.sin(nowMs * 0.004);
+      function drawOpticalRulerTicks(W, H) {
+        ctx.save();
+        ctx.strokeStyle =
+          AppState.dimAlpha > 0.2 ? 'rgba(246, 244, 239, 0.30)' : 'rgba(24, 24, 27, 0.22)';
+        ctx.lineWidth = 1;
 
-        // Linha sutil de varredura laser horizontal na área central
-        if (AppState.mode === 'SCANNING') {
-          const roiY1 = H * 0.17;
-          const roiY2 = H * 0.83;
-          const sweepX = ((nowMs * 0.16) % (W + 120)) - 60;
+        const step = 28;
+        const startY = Math.floor(H * 0.2);
+        const endY = Math.floor(H * 0.8);
 
-          const laserGrad = ctx.createLinearGradient(sweepX - 50, 0, sweepX + 12, 0);
-          laserGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
-          laserGrad.addColorStop(0.85, 'rgba(56, 189, 248, 0.14)');
-          laserGrad.addColorStop(1, 'rgba(56, 189, 248, 0.42)');
-
-          ctx.fillStyle = laserGrad;
-          ctx.fillRect(sweepX - 50, roiY1, 62, roiY2 - roiY1);
+        ctx.beginPath();
+        for (let y = startY; y <= endY; y += step) {
+          const isMajor = ((y - startY) / step) % 4 === 0;
+          const tickLen = isMajor ? 10 : 5;
+          ctx.moveTo(8, y);
+          ctx.lineTo(8 + tickLen, y);
+          ctx.moveTo(W - 8, y);
+          ctx.lineTo(W - 8 - tickLen, y);
         }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawCoverViewfinderGuide(W, H, box, nowMs) {
+        const x = box.x * W;
+        const y = box.y * H;
+        const w = box.w * W;
+        const h = box.h * H;
+        const cx = x + w * 0.5;
+        const cy = y + h * 0.5;
+        const pulse = 0.78 + 0.22 * Math.sin(nowMs * 0.004);
+
+        ctx.save();
+
+        // Contorno tracejado sutil
+        ctx.strokeStyle = 'rgba(246, 244, 239, 0.55)';
+        ctx.lineWidth = 1.25;
+        ctx.setLineDash([6, 6]);
+        drawRoundedRectPath(ctx, x, y, w, h, 8);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Cantoneiras espessas em Amarelo Luminária (#EAB308)
+        const cLen = Math.min(26, w * 0.16);
+        ctx.strokeStyle = `rgba(234, 179, 8, ${pulse.toFixed(3)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, y + cLen);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + cLen, y);
+
+        ctx.moveTo(x + w - cLen, y);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x + w, y + cLen);
+
+        ctx.moveTo(x, y + h - cLen);
+        ctx.lineTo(x, y + h);
+        ctx.lineTo(x + cLen, y + h);
+
+        ctx.moveTo(x + w - cLen, y + h);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x + w, y + h - cLen);
+        ctx.stroke();
+
+        // Mira central discreta
+        ctx.strokeStyle = 'rgba(246, 244, 239, 0.45)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 10, cy);
+        ctx.lineTo(cx + 10, cy);
+        ctx.moveTo(cx, cy - 10);
+        ctx.lineTo(cx, cy + 10);
+        ctx.stroke();
+
+        // Etiqueta superior
+        const label = 'MOLDURA DE CAPA (2:3)';
+        ctx.font = '600 10px "JetBrains Mono", monospace';
+        const tw = ctx.measureText(label).width + 18;
+        const th = 22;
+        const tx = cx - tw * 0.5;
+        const ty = Math.max(64, y - th - 10);
+
+        ctx.fillStyle = '#18181B';
+        drawRoundedRectPath(ctx, tx, ty, tw, th, 6);
+        ctx.fill();
+
+        ctx.fillStyle = '#EAB308';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx, ty + th * 0.5 + 0.5);
+
+        ctx.restore();
+      }
+
+      function drawMuralSpineGuides(W, H, spines, activeBox, nowMs) {
+        const pulse = 0.58 + 0.25 * Math.sin(nowMs * 0.004);
 
         for (let i = 0; i < spines.length; i++) {
           const s = spines[i];
-          if (activeSpine && s.id === activeSpine.id) continue;
+          if (activeBox && s.id === activeBox.id) continue;
 
           const x = s.x * W;
           const y = s.y * H;
           const w = s.w * W;
           const h = s.h * H;
+          const alpha = AppState.mode === 'SPINNING' ? 0.28 : pulse;
 
-          const alpha = AppState.mode === 'SPINNING' ? 0.22 : 0.45 * pulse + 0.25;
-
-          // Preenchimento translúcido muito leve
-          ctx.fillStyle = `rgba(56, 189, 248, ${(alpha * 0.14).toFixed(3)})`;
+          // Azul Mural (#2B547E)
+          ctx.fillStyle = `rgba(43, 84, 126, ${(alpha * 0.09).toFixed(3)})`;
           ctx.fillRect(x, y, w, h);
 
-          // Cantoneiras técnicas minimalistas no topo e na base da lombada
-          const bracketLen = Math.min(12, w * 0.35, h * 0.08);
-          ctx.strokeStyle = `rgba(56, 189, 248, ${alpha.toFixed(3)})`;
+          const bracketLen = Math.min(11, w * 0.35, h * 0.07);
+          ctx.strokeStyle = `rgba(43, 84, 126, ${alpha.toFixed(3)})`;
           ctx.lineWidth = 1.6;
-          ctx.lineCap = 'round';
 
           ctx.beginPath();
-          // Canto superior esquerdo
           ctx.moveTo(x, y + bracketLen);
           ctx.lineTo(x, y);
           ctx.lineTo(x + bracketLen, y);
-          // Canto superior direito
+
           ctx.moveTo(x + w - bracketLen, y);
           ctx.lineTo(x + w, y);
           ctx.lineTo(x + w, y + bracketLen);
-          // Canto inferior esquerdo
+
           ctx.moveTo(x, y + h - bracketLen);
           ctx.lineTo(x, y + h);
           ctx.lineTo(x + bracketLen, y + h);
-          // Canto inferior direito
+
           ctx.moveTo(x + w - bracketLen, y + h);
           ctx.lineTo(x + w, y + h);
           ctx.lineTo(x + w, y + h - bracketLen);
@@ -1380,175 +3377,205 @@
         }
       }
 
-      // Desenha o holofote volumétrico dourado e o cartão AR no livro escolhido
-      function drawSelectorSpotlight(W, H, spine, spineRank, nowMs, dt) {
+      /**
+       * Feixe de luz quente inspirado nas luminárias pendentes amarelas da biblioteca,
+       * combinado com moldura vermelha de catalogação ao travar no exemplar.
+       */
+      function drawPendantSpotlightPrism(W, H, box, nowMs) {
         const isLocked = AppState.mode === 'LOCKED';
-        const pad = isLocked ? 5 : 3;
-        const x = spine.x * W - pad;
-        const y = spine.y * H - pad;
-        const w = spine.w * W + pad * 2;
-        const h = spine.h * H + pad * 2;
+        const pad = isLocked ? 5 : 2;
+        const x = box.x * W - pad;
+        const y = box.y * H - pad;
+        const w = box.w * W + pad * 2;
+        const h = box.h * H + pad * 2;
         const cx = x + w * 0.5;
-        const cy = y + h * 0.5;
 
-        const breath = isLocked ? 0.85 + 0.15 * Math.sin(nowMs * 0.006) : 1;
+        const breath = isLocked ? 0.88 + 0.12 * Math.sin(nowMs * 0.005) : 1;
 
         ctx.save();
 
-        // 1. Feixe de luz volumétrico vindo do topo da tela em direção ao livro
-        const beamGrad = ctx.createLinearGradient(cx, 0, cx, y + h);
-        beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.02)');
-        beamGrad.addColorStop(0.55, `rgba(251, 191, 36, ${(isLocked ? 0.18 : 0.12) * breath})`);
-        beamGrad.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+        // Feixe cônico da luminária amarela
+        const prismGrad = ctx.createLinearGradient(cx, 0, cx, y + h);
+        prismGrad.addColorStop(0, 'rgba(234, 179, 8, 0.04)');
+        prismGrad.addColorStop(0.55, `rgba(234, 179, 8, ${(isLocked ? 0.22 : 0.16) * breath})`);
+        prismGrad.addColorStop(1, 'rgba(200, 50, 50, 0.08)');
 
-        ctx.fillStyle = beamGrad;
+        ctx.fillStyle = prismGrad;
         ctx.beginPath();
-        ctx.moveTo(cx - w * 0.35, 0);
-        ctx.lineTo(cx + w * 0.35, 0);
-        ctx.lineTo(x + w + 18, y + h);
-        ctx.lineTo(x - 18, y + h);
+        ctx.moveTo(cx - w * 0.22, 0);
+        ctx.lineTo(cx + w * 0.22, 0);
+        ctx.lineTo(x + w + 12, y + h);
+        ctx.lineTo(x - 12, y + h);
         ctx.closePath();
         ctx.fill();
 
-        // 2. Halo externo quente ao redor da lombada
-        ctx.shadowColor = 'rgba(251, 191, 36, 0.95)';
-        ctx.shadowBlur = isLocked ? 34 * breath : 22;
-
-        // Iluminação interna aditiva suave
-        ctx.fillStyle = `rgba(254, 240, 138, ${isLocked ? 0.14 : 0.24})`;
-        drawRoundedRectPath(ctx, x, y, w, h, 10);
+        // Brilho suave sobre o exemplar
+        const glowGrad = ctx.createLinearGradient(x, y, x, y + h);
+        glowGrad.addColorStop(0, `rgba(234, 179, 8, ${isLocked ? 0.14 : 0.20})`);
+        glowGrad.addColorStop(0.5, `rgba(234, 179, 8, ${isLocked ? 0.08 : 0.14})`);
+        glowGrad.addColorStop(1, `rgba(200, 50, 50, ${isLocked ? 0.14 : 0.18})`);
+        ctx.fillStyle = glowGrad;
+        drawRoundedRectPath(ctx, x, y, w, h, 8);
         ctx.fill();
 
-        // 3. Moldura luminosa dourada
-        ctx.strokeStyle = isLocked ? '#fef08a' : '#fbbf24';
-        ctx.lineWidth = isLocked ? 3 : 2.5;
-        drawRoundedRectPath(ctx, x, y, w, h, 10);
+        // Contorno Vermelho Estante / Amarelo Luminária
+        ctx.strokeStyle = isLocked ? '#C83232' : '#EAB308';
+        ctx.lineWidth = isLocked ? 2 : 2.2;
+        drawRoundedRectPath(ctx, x, y, w, h, 8);
         ctx.stroke();
 
-        ctx.shadowBlur = 0;
-
-        // 4. Partículas de luz flutuando dentro do feixe no estado LOCKED
         if (isLocked) {
-          for (let i = 0; i < AppState.dustParticles.length; i++) {
-            const p = AppState.dustParticles[i];
-            p.rx += p.vx * dt;
-            p.ry += p.vy * dt;
-            if (p.ry < 0) {
-              p.ry = 1;
-              p.rx = Math.random();
-            }
-            if (p.rx < 0) p.rx = 1;
-            if (p.rx > 1) p.rx = 0;
+          const cLen = Math.min(20, w * 0.42, h * 0.10);
+          ctx.strokeStyle = '#EAB308';
+          ctx.lineWidth = 2.8;
+          ctx.beginPath();
+          ctx.moveTo(x, y + cLen);
+          ctx.lineTo(x, y);
+          ctx.lineTo(x + cLen, y);
+          ctx.moveTo(x + w - cLen, y);
+          ctx.lineTo(x + w, y);
+          ctx.lineTo(x + w, y + cLen);
+          ctx.moveTo(x, y + h - cLen);
+          ctx.lineTo(x, y + h);
+          ctx.lineTo(x + cLen, y + h);
+          ctx.moveTo(x + w - cLen, y + h);
+          ctx.lineTo(x + w, y + h);
+          ctx.lineTo(x + w, y + h - cLen);
+          ctx.stroke();
 
-            const px = x + p.rx * w;
-            const py = y + p.ry * h;
-            const pAlpha = 0.35 + 0.45 * Math.sin(nowMs * 0.005 + p.phase);
+          const labelText =
+            AppState.captureTarget === 'COVER' ? 'CAPA SELECIONADA' : 'EXEMPLAR SELECIONADO';
+          ctx.font = '600 10px "JetBrains Mono", monospace';
+          const textW = ctx.measureText(labelText).width;
+          const tagW = textW + 20;
+          const tagH = 24;
+          const tagX = Math.max(12, Math.min(W - tagW - 12, cx - tagW * 0.5));
+          const tagY = Math.max(66, y - tagH - 10);
 
-            ctx.fillStyle = `rgba(254, 249, 195, ${pAlpha.toFixed(3)})`;
-            ctx.beginPath();
-            ctx.arc(px, py, p.size, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.fillStyle = '#C83232';
+          drawRoundedRectPath(ctx, tagX, tagY, tagW, tagH, 6);
+          ctx.fill();
 
-          // 5. Etiqueta flutuante de Realidade Aumentada ("Lombada Escolhida!")
-          drawFloatingARCallout(W, H, x, y, w, h, spineRank);
+          ctx.strokeStyle = '#EAB308';
+          ctx.lineWidth = 1.2;
+          drawRoundedRectPath(ctx, tagX, tagY, tagW, tagH, 6);
+          ctx.stroke();
+
+          ctx.fillStyle = '#F6F4EF';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(labelText, tagX + tagW * 0.5, tagY + tagH * 0.5 + 0.5);
         }
 
         ctx.restore();
       }
 
-      // Desenha o badge AR flutuante ancorado ao livro escolhido sem sair da tela
-      function drawFloatingARCallout(W, H, bx, by, bw, bh, spineRank) {
-        const cardW = Math.min(224, W - 32);
-        const cardH = 58;
-        const centerX = bx + bw * 0.5;
-
-        // Posiciona preferencialmente acima do livro; se não couber, abaixo
-        let cardY = by - cardH - 16;
-        let pointerAbove = false;
-
-        if (cardY < 86) {
-          cardY = Math.min(H - 140 - cardH, by + bh + 16);
-          pointerAbove = true;
-        }
-
-        const cardX = Math.max(16, Math.min(W - cardW - 16, centerX - cardW * 0.5));
-        const anchorX = Math.max(cardX + 18, Math.min(cardX + cardW - 18, centerX));
-
-        // Linha guia conectando o cartão ao livro iluminado
-        ctx.strokeStyle = 'rgba(254, 240, 138, 0.85)';
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        if (!pointerAbove) {
-          ctx.moveTo(anchorX, cardY + cardH);
-          ctx.lineTo(centerX, by);
-        } else {
-          ctx.moveTo(anchorX, cardY);
-          ctx.lineTo(centerX, by + bh);
-        }
-        ctx.stroke();
-
-        // Ponto brilhante de ancoragem na borda do livro
-        ctx.fillStyle = '#fef08a';
-        ctx.beginPath();
-        ctx.arc(centerX, pointerAbove ? by + bh : by, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Fundo escuro elegante com borda dourada
-        ctx.fillStyle = 'rgba(11, 14, 20, 0.92)';
-        ctx.strokeStyle = 'rgba(251, 191, 36, 0.75)';
-        ctx.lineWidth = 1.5;
-        drawRoundedRectPath(ctx, cardX, cardY, cardW, cardH, 14);
-        ctx.fill();
-        ctx.stroke();
-
-        // Texto principal do badge AR
-        ctx.fillStyle = '#fbbf24';
-        ctx.font = '700 12px Inter, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('✦ LOMBADA ESCOLHIDA', cardX + 14, cardY + 21);
-
-        // Subtítulo com posição na prateleira
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = '500 12px Inter, sans-serif';
-        ctx.fillText(`Livro #${spineRank} da esquerda para direita`, cardX + 14, cardY + 41);
-      }
-
-      function drawRoundedRectPath(context, x, y, w, h, r) {
-        const radius = Math.min(r, w * 0.5, h * 0.5);
-        context.beginPath();
-        context.moveTo(x + radius, y);
-        context.arcTo(x + w, y, x + w, y + h, radius);
-        context.arcTo(x + w, y + h, x, y + h, radius);
-        context.arcTo(x, y + h, x, y, radius);
-        context.arcTo(x, y, x + w, y, radius);
-        context.closePath();
-      }
-
-      // ------------------------------------------------------------------------
-      // LOOP PRINCIPAL DE ANIMAÇÃO (60 FPS)
-      // ------------------------------------------------------------------------
       function animationLoop(nowMs) {
         renderAROverlay(nowMs);
         requestAnimationFrame(animationLoop);
       }
 
       // ------------------------------------------------------------------------
-      // EVENTOS DE INTERAÇÃO (TOQUE E CLIQUE)
+      // CADERNO DE FICHAS DA SESSÃO (LOCALSTORAGE)
+      // ------------------------------------------------------------------------
+      function getSavedSessionBooks() {
+        try {
+          return JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '[]');
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveSessionBooks(list) {
+        try {
+          localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(list));
+        } catch (e) {}
+        updateSessionBadge();
+      }
+
+      function updateSessionBadge() {
+        const list = getSavedSessionBooks();
+        sessionCountBadge.textContent = String(list.length);
+      }
+
+      function saveCurrentBookToSession() {
+        const book = AppState.currentBookData;
+        if (!book) return;
+        const list = getSavedSessionBooks();
+        const exists = list.some((item) => item.title === book.title && item.authors === book.authors);
+        if (!exists) {
+          list.unshift({
+            title: book.title,
+            authors: book.authors,
+            publishedDate: book.publishedDate || '',
+            sourceApi: book.sourceApi || ''
+          });
+          saveSessionBooks(list);
+          btnSaveLabel.textContent = 'Guardada ✓';
+          showToast('Ficha adicionada ao caderno da sessão.');
+        } else {
+          showToast('Esta ficha já está guardada na sessão.');
+        }
+      }
+
+      function renderSessionModalList() {
+        const list = getSavedSessionBooks();
+        sessionListContainer.innerHTML = '';
+
+        if (list.length === 0) {
+          sessionListContainer.innerHTML =
+            '<p class="text-xs sm:text-sm text-[#52525B] text-center py-8">Nenhuma ficha guardada ainda nesta sessão.</p>';
+          return;
+        }
+
+        list.forEach((item, idx) => {
+          const row = document.createElement('div');
+          row.className = 'rounded-xl border border-[#18181B]/12 bg-white p-3 flex items-start justify-between gap-3';
+
+          const info = document.createElement('div');
+          info.className = 'min-w-0 flex-1';
+          info.innerHTML = `
+            <p class="font-editorial text-base font-semibold text-[#18181B] leading-snug">${item.title}</p>
+            <p class="text-xs text-[#C83232] font-medium mt-0.5">${item.authors}</p>
+            <p class="text-[10px] font-mono-tech text-[#52525B] mt-1">${item.publishedDate || 'EDIÇÃO'} • ${item.sourceApi}</p>
+          `;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'text-xs font-mono-tech text-[#52525B] hover:text-[#C83232] px-2 py-1 cursor-pointer';
+          removeBtn.textContent = '✕';
+          removeBtn.addEventListener('click', () => {
+            const updated = getSavedSessionBooks().filter((_, i) => i !== idx);
+            saveSessionBooks(updated);
+            renderSessionModalList();
+          });
+
+          row.appendChild(info);
+          row.appendChild(removeBtn);
+          sessionListContainer.appendChild(row);
+        });
+      }
+
+      // ------------------------------------------------------------------------
+      // OUVINTES DE EVENTOS DA INTERFACE
       // ------------------------------------------------------------------------
       btnStartCamera.addEventListener('click', activateCameraMode);
       btnStartDemo.addEventListener('click', activateDemoMode);
 
       btnToggleSource.addEventListener('click', () => {
-        clearTimeout(AppState.spinTimerId);
-        AppState.trackedSpines = [];
         if (AppState.sourceType === 'CAMERA') {
           activateDemoMode();
         } else {
           activateCameraMode();
         }
       });
+
+      btnModeSpine.addEventListener('click', () => setCaptureTarget('SPINE'));
+      btnModeCover.addEventListener('click', () => setCaptureTarget('COVER'));
+
+      btnPrevDemoCover.addEventListener('click', () => DemoShelf.prevCover());
+      btnNextDemoCover.addEventListener('click', () => DemoShelf.nextCover());
+      btnCaptureCover.addEventListener('click', captureAndAnalyzeCover);
 
       btnToggleSensitivity.addEventListener('click', () => {
         sensitivityDrawer.classList.toggle('hidden');
@@ -1560,25 +3587,118 @@
       });
 
       btnToggleAudio.addEventListener('click', () => {
-        SoundEngine.unlock();
         AppState.audioMuted = !AppState.audioMuted;
         iconAudioOn.classList.toggle('hidden', AppState.audioMuted);
         iconAudioOff.classList.toggle('hidden', !AppState.audioMuted);
-        showToast(AppState.audioMuted ? 'Som desativado' : 'Efeitos sonoros ativados', 1600);
+        if (!AppState.audioMuted) SoundEngine.unlock();
+        showToast(AppState.audioMuted ? 'Áudio silenciado.' : 'Feedback acústico ativado.');
       });
 
       btnSpin.addEventListener('click', startSelectorRoulette);
-      btnRespin.addEventListener('click', startSelectorRoulette);
-      btnBackScan.addEventListener('click', () => {
+      btnOpenBookDrawer.addEventListener('click', openBookDrawer);
+
+      const handleResetToScanner = () => {
         clearTimeout(AppState.spinTimerId);
+        AppState.analysisRunId++;
         setAppMode('SCANNING');
+        showToast('Visor liberado para nova leitura.');
+      };
+
+      btnPillNewDraw.addEventListener('click', handleResetToScanner);
+      btnSheetRespin.addEventListener('click', handleResetToScanner);
+
+      btnCloseSheet.addEventListener('click', closeBookDrawer);
+      btnCloseSheetTop.addEventListener('click', closeBookDrawer);
+
+      btnToggleSynopsis.addEventListener('click', () => {
+        AppState.synopsisExpanded = !AppState.synopsisExpanded;
+        bookSynopsis.classList.toggle('line-clamp-3', !AppState.synopsisExpanded);
+        btnToggleSynopsis.textContent = AppState.synopsisExpanded ? 'Recolher sinopse' : 'Ler sinopse completa';
       });
 
-      // Permite também tocar diretamente sobre uma lombada rastreada na tela para iluminá-la
+      btnRetrySearch.addEventListener('click', () => {
+        const manualQuery = ocrEditInput.value.trim();
+        if (!manualQuery) {
+          showToast('Digite um título ou autor para pesquisar.');
+          return;
+        }
+        const runId = ++AppState.analysisRunId;
+        sheetSourceTag.textContent = 'BUSCA MANUAL';
+        sheetLoadingState.classList.remove('hidden');
+        sheetResultState.classList.add('hidden');
+        sheetLoadingTitle.textContent = `Consultando "${manualQuery}"...`;
+        sheetLoadingSub.textContent = 'GOOGLE BOOKS • PODCASTS • YOUTUBE';
+        executeCatalogLookup(manualQuery, runId);
+      });
+
+      ocrEditInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          btnRetrySearch.click();
+        }
+      });
+
+      btnSaveToSession.addEventListener('click', saveCurrentBookToSession);
+
+      btnOpenSessionList.addEventListener('click', () => {
+        renderSessionModalList();
+        sessionModal.classList.remove('hidden');
+      });
+
+      btnCloseSessionModal.addEventListener('click', () => {
+        sessionModal.classList.add('hidden');
+      });
+
+      sessionModal.addEventListener('click', (e) => {
+        if (e.target === sessionModal) {
+          sessionModal.classList.add('hidden');
+        }
+      });
+
+      btnClearSession.addEventListener('click', () => {
+        saveSessionBooks([]);
+        renderSessionModalList();
+        showToast('Caderno da sessão limpo.');
+      });
+
+      btnCopySessionList.addEventListener('click', () => {
+        const list = getSavedSessionBooks();
+        if (list.length === 0) {
+          showToast('Nenhuma referência para copiar.');
+          return;
+        }
+        const formatted = list
+          .map((b, i) => `${i + 1}. ${b.title} — ${b.authors}${b.publishedDate ? ` (${b.publishedDate})` : ''}`)
+          .join('\n');
+
+        const tempArea = document.createElement('textarea');
+        tempArea.value = formatted;
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        try {
+          document.execCommand('copy');
+          showToast('Referências copiadas para a área de transferência.');
+        } catch (e) {
+          showToast('Não foi possível copiar automaticamente.');
+        }
+        document.body.removeChild(tempArea);
+      });
+
       arCanvas.addEventListener('click', (e) => {
-        if (AppState.mode !== 'SCANNING' || AppState.trackedSpines.length === 0) return;
+        if (AppState.mode !== 'SCANNING') return;
+
         const clickX = e.clientX / AppState.viewportW;
         const clickY = e.clientY / AppState.viewportH;
+
+        if (AppState.captureTarget === 'COVER') {
+          const box = getCoverGuideNormalizedRect();
+          if (clickX >= box.x && clickX <= box.x + box.w && clickY >= box.y && clickY <= box.y + box.h) {
+            captureAndAnalyzeCover();
+          }
+          return;
+        }
+
+        if (AppState.trackedSpines.length === 0) return;
 
         const tapped = AppState.trackedSpines.find(
           (s) => clickX >= s.x && clickX <= s.x + s.w && clickY >= s.y && clickY <= s.y + s.h
@@ -1586,15 +3706,14 @@
 
         if (tapped) {
           SoundEngine.unlock();
-          AppState.lockedSpineId = tapped.id;
-          setAppMode('LOCKED');
-          SoundEngine.playLock();
+          lockAndAnalyzeExemplar(tapped, 'SPINE');
         }
       });
 
-      // Inicia o loop de renderização após o carregamento completo da janela
       window.addEventListener('load', () => {
         resizeCanvas();
+        updateSessionBadge();
+        OCREngine.init();
         requestAnimationFrame(animationLoop);
       });
     })();
